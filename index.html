@@ -518,6 +518,10 @@
         <div class="bt-dot"></div>
         <span>POLAR</span>
       </div>
+      <div class="bt-pill" id="smoothPill" onclick="toggleSmoothing()" title="Toggle power smoothing">
+        <div class="bt-dot" style="background:#ffe000"></div>
+        <span id="smoothLabel">3S AVG</span>
+      </div>
     </div>
   </header>
 
@@ -598,6 +602,9 @@ const ZONES = [
 // ── STATE ──────────────────────────────────────────────────────────────────
 let ftp = 200;
 let livePower = 0, liveHR = 0, liveCad = 0;
+let rawPowerBuffer = [];       // rolling 3s buffer for smoothing
+const SMOOTH_WINDOW = 3;       // seconds
+let smoothingEnabled = true;
 let currentZone = null;
 let stagesClient = null, polarClient = null;
 let stagesConnected = false, polarConnected = false;
@@ -847,7 +854,14 @@ async function connectPolar() {
 function onPowerData(e) {
   const d = e.target.value;
   const flags = d.getUint16(0, true);
-  livePower = d.getInt16(2, true);
+  const rawPower = d.getInt16(2, true);
+
+  // Rolling average smoothing (matches bike computer behaviour)
+  rawPowerBuffer.push(rawPower);
+  if (rawPowerBuffer.length > SMOOTH_WINDOW) rawPowerBuffer.shift();
+  livePower = smoothingEnabled
+    ? Math.round(rawPowerBuffer.reduce((a,b) => a+b, 0) / rawPowerBuffer.length)
+    : rawPower;
 
   // Crank cadence from CPS (flag bit 4)
   if (flags & 0x10) {
@@ -905,7 +919,14 @@ function startSession() {
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────────
-function init() {
+function toggleSmoothing() {
+  smoothingEnabled = !smoothingEnabled;
+  if (!smoothingEnabled) rawPowerBuffer = [];
+  document.getElementById('smoothLabel').textContent = smoothingEnabled ? '3S AVG' : 'RAW';
+  document.getElementById('smoothPill').style.opacity = smoothingEnabled ? '1' : '0.45';
+}
+
+
   if (!navigator.bluetooth) {
     document.getElementById('noBtWarn').style.display = 'block';
   }
