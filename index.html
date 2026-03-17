@@ -926,7 +926,7 @@ function toggleSmoothing() {
   document.getElementById('smoothPill').style.opacity = smoothingEnabled ? '1' : '0.45';
 }
 
-
+function init() {
   if (!navigator.bluetooth) {
     document.getElementById('noBtWarn').style.display = 'block';
   }
