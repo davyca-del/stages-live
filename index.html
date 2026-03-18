@@ -140,9 +140,13 @@
   /* ── MAIN METRICS ── */
   .metrics {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr;
     gap: 10px;
     align-items: stretch;
+  }
+
+  .metrics.with-hr {
+    grid-template-columns: 2fr 1fr 1fr;
   }
 
   .metric-card {
@@ -159,14 +163,11 @@
     transition: border-color 0.5s, box-shadow 0.5s;
   }
 
-  /* Primary power card — bigger */
+  /* Primary power card */
   .metric-card.power-card {
-    grid-column: 1 / -1;
     padding: 20px;
-    flex-direction: row;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    gap: 16px;
   }
 
   .metric-card::before {
@@ -475,8 +476,8 @@
 <div id="overlay">
   <div class="overlay-title">POWER ZONES · LIVE</div>
   <div class="overlay-sub">
-    Connect your Stages SC3 and Polar H10<br>
-    then hit START to begin your session
+    Connect your Stages SC3 to begin<br>
+    Polar H10 is optional — add heart rate any time
   </div>
   <div id="noBtWarn" class="no-bt-warn" style="display:none;">
     ⚠ Web Bluetooth not available — use Chrome or Edge on desktop/Android
@@ -494,7 +495,7 @@
     </button>
     <button class="connect-btn" id="polarBtn" onclick="connectPolar()">
       <span>♥ POLAR H10</span>
-      <span class="connect-btn-sub" id="polarSub">Heart Rate</span>
+      <span class="connect-btn-sub" id="polarSub">Heart Rate · optional</span>
     </button>
   </div>
   <button class="start-btn" id="startBtn" onclick="startSession()">START SESSION →</button>
@@ -528,23 +529,11 @@
   <!-- POWER CARD -->
   <div class="metrics">
     <div class="metric-card power-card" id="powerCard">
-      <div class="power-main">
-        <div class="metric-label">POWER OUTPUT</div>
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;">
+        <div class="metric-label">POWER</div>
         <div class="power-value" id="powerVal">––</div>
-        <div class="power-unit">WATTS</div>
+        <div class="power-unit">WATTS · <span id="pctFTP">–% FTP</span></div>
       </div>
-      <div class="zone-badge">
-        <div class="zone-num-big" id="zoneNumBig">–</div>
-        <div class="zone-name-big" id="zoneNameBig">––</div>
-        <div class="pct-ftp" id="pctFTP">–% FTP</div>
-      </div>
-    </div>
-
-    <!-- HR CARD -->
-    <div class="metric-card" id="hrCard">
-      <div class="metric-label">HEART RATE</div>
-      <div class="metric-value live" id="hrVal">––</div>
-      <div class="metric-unit">BPM</div>
     </div>
 
     <!-- CADENCE CARD -->
@@ -554,11 +543,11 @@
       <div class="metric-unit">RPM</div>
     </div>
 
-    <!-- NP / IF CARD -->
-    <div class="metric-card" id="npCard">
-      <div class="metric-label">NORM POWER</div>
-      <div class="metric-value" id="npVal">––</div>
-      <div class="metric-unit">W</div>
+    <!-- HR CARD — shown only when Polar connected -->
+    <div class="metric-card" id="hrCard" style="display:none;">
+      <div class="metric-label">HEART RATE</div>
+      <div class="metric-value live" id="hrVal">––</div>
+      <div class="metric-unit">BPM</div>
     </div>
   </div>
 
@@ -666,75 +655,61 @@ function updateDisplay() {
   // Zone changed
   if (z && z.num !== lastZoneNum) {
     lastZoneNum = z.num;
-    // Update CSS color variable everywhere
     document.documentElement.style.setProperty('--zone-color', z.color);
-    // Flash
     const flash = document.getElementById('zoneFlash');
     flash.style.opacity = '0.12';
     setTimeout(() => flash.style.opacity = '0', 400);
-    // Update zone labels
-    document.getElementById('zoneNumBig').textContent = `Z${z.num}`;
-    document.getElementById('zoneNameBig').textContent = z.name;
     document.getElementById('logoZone').textContent = `Z${z.num} · ${z.name.toUpperCase()}`;
-    // Activate the right bar
     ZONES.forEach(zz => {
       document.getElementById(`zbar${zz.num}`)?.classList.toggle('active', zz.num === z.num);
     });
   } else if (!z) {
-    document.getElementById('zoneNumBig').textContent = '–';
-    document.getElementById('zoneNameBig').textContent = '––';
+    document.documentElement.style.setProperty('--zone-color', '#4a9eff');
     document.getElementById('logoZone').textContent = 'POWER ZONES · LIVE';
     lastZoneNum = null;
     ZONES.forEach(zz => document.getElementById(`zbar${zz.num}`)?.classList.remove('active'));
   }
 
   // Power
-  const pVal = document.getElementById('powerVal');
   if (livePower > 0) {
-    pVal.textContent = livePower;
-    const pct = Math.round((livePower / ftp) * 100);
-    document.getElementById('pctFTP').textContent = `${pct}% FTP`;
+    document.getElementById('powerVal').textContent = livePower;
+    document.getElementById('pctFTP').textContent = `${Math.round((livePower / ftp) * 100)}% FTP`;
   } else {
-    pVal.textContent = '––';
+    document.getElementById('powerVal').textContent = '––';
     document.getElementById('pctFTP').textContent = '–% FTP';
   }
 
-  // HR
-  document.getElementById('hrVal').textContent = liveHR > 0 ? liveHR : '––';
+  // HR (only update if element visible)
+  if (polarConnected) {
+    document.getElementById('hrVal').textContent = liveHR > 0 ? liveHR : '––';
+  }
 
   // Cadence
   document.getElementById('cadVal').textContent = liveCad > 0 ? liveCad : '––';
 
-  // Normalised power (rolling 30s mean of 4th power, then 4th root)
-  if (livePower > 0 && sessionActive) {
-    npBuffer.push(livePower);
-    if (npBuffer.length > NP_WINDOW) npBuffer.shift();
-    if (npBuffer.length >= 5) {
-      const mean4 = npBuffer.reduce((s, p) => s + Math.pow(p, 4), 0) / npBuffer.length;
-      const np = Math.round(Math.pow(mean4, 0.25));
-      document.getElementById('npVal').textContent = np;
-      const IF = (np / ftp).toFixed(2);
-      document.getElementById('ifVal').textContent = IF;
-    }
-  }
-
-  // Rolling averages
+  // Rolling averages for trend row
   if (sessionActive) {
     if (livePower > 0) powerHistory.push(livePower);
     if (liveHR > 0)    hrHistory.push(liveHR);
     if (liveCad > 0)   cadHistory.push(liveCad);
-
-    if (powerHistory.length) {
+    if (powerHistory.length)
       document.getElementById('avgPower').textContent =
         Math.round(powerHistory.reduce((a,b)=>a+b,0)/powerHistory.length);
-    }
-    if (hrHistory.length) {
+    if (hrHistory.length)
       document.getElementById('avgHR').textContent =
         Math.round(hrHistory.reduce((a,b)=>a+b,0)/hrHistory.length);
-    }
-    if (cadHistory.length) {
+    if (cadHistory.length)
       document.getElementById('avgCad').textContent =
         Math.round(cadHistory.reduce((a,b)=>a+b,0)/cadHistory.length);
+
+    // Normalised power
+    npBuffer.push(livePower);
+    if (npBuffer.length > NP_WINDOW) npBuffer.shift();
+    if (npBuffer.length >= 5) {
+      const mean4 = npBuffer.reduce((s,p) => s + Math.pow(p,4), 0) / npBuffer.length;
+      const np = Math.round(Math.pow(mean4, 0.25));
+      const ifEl = document.getElementById('ifVal');
+      if (ifEl) ifEl.textContent = (np / ftp).toFixed(2);
     }
   }
 }
@@ -771,7 +746,7 @@ function setConnectBtn(id, subId, state, subText) {
 }
 
 function checkStartReady() {
-  const ready = stagesConnected && polarConnected;
+  const ready = stagesConnected;
   document.getElementById('startBtn').classList.toggle('ready', ready);
 }
 
@@ -842,6 +817,10 @@ async function connectPolar() {
     polarConnected = true;
     setPill('polarPill','connected');
     setConnectBtn('polarBtn','polarSub','done', device.name || 'Polar H10');
+    // Show HR card now that Polar is connected
+    document.getElementById('hrCard').style.display = 'flex';
+    document.getElementById('hrCard').style.removeProperty('display');
+    document.querySelector('.metrics').classList.add('with-hr');
     checkStartReady();
   } catch(e) {
     setPill('polarPill','idle');
@@ -851,27 +830,41 @@ async function connectPolar() {
 }
 
 // ── BLE DATA PARSERS ───────────────────────────────────────────────────────
+let cpsCrankRevs = null, cpsCrankTime = null;
+
 function onPowerData(e) {
   const d = e.target.value;
   const flags = d.getUint16(0, true);
   const rawPower = d.getInt16(2, true);
 
-  // Rolling average smoothing (matches bike computer behaviour)
+  // Rolling average smoothing
   rawPowerBuffer.push(rawPower);
   if (rawPowerBuffer.length > SMOOTH_WINDOW) rawPowerBuffer.shift();
   livePower = smoothingEnabled
     ? Math.round(rawPowerBuffer.reduce((a,b) => a+b, 0) / rawPowerBuffer.length)
     : rawPower;
 
-  // Crank cadence from CPS (flag bit 4)
+  // Cadence from crank revolution data in CPS packet (flag bit 4 = 0x0010)
+  // Packet layout: flags(2) + power(2) [+ wheel data(6) if bit 0 set] + crank revs(2) + crank time(2)
   if (flags & 0x10) {
-    // Crank revolution data present at offset 4+
-    const offset = 4 + (flags & 0x01 ? 6 : 0); // skip wheel data if present
-    // We'll use instantaneous cadence if available (flag bit 2)
-  }
-  // If no CSC service, try to get cadence from CPS instantaneous cadence field
-  if (flags & 0x04) {
-    liveCad = d.getUint8(8); // instantaneous cadence
+    const offset = 4 + ((flags & 0x01) ? 6 : 0);
+    if (d.byteLength >= offset + 4) {
+      const revs = d.getUint16(offset, true);
+      const time = d.getUint16(offset + 2, true); // 1/1024 sec units
+      if (cpsCrankRevs !== null) {
+        const rd = (revs - cpsCrankRevs + 65536) % 65536;
+        const td = (time - cpsCrankTime + 65536) % 65536;
+        if (td > 0 && rd > 0) {
+          const rpm = Math.round((rd / (td / 1024)) * 60);
+          if (rpm > 0 && rpm < 250) liveCad = rpm;
+        } else if (td > 2048) {
+          // No movement for 2+ seconds — cadence is zero
+          liveCad = 0;
+        }
+      }
+      cpsCrankRevs = revs;
+      cpsCrankTime = time;
+    }
   }
 
   updateDisplay();
