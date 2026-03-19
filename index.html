@@ -140,13 +140,22 @@
   /* ── MAIN METRICS ── */
   .metrics {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: 1fr;
     gap: 10px;
     align-items: stretch;
   }
 
   .metrics.with-hr {
-    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 600px) {
+    .metrics {
+      grid-template-columns: 2fr 1fr;
+    }
+    .metrics.with-hr {
+      grid-template-columns: 2fr 1fr 1fr;
+    }
   }
 
   .metric-card {
@@ -444,7 +453,7 @@
     font-family: 'Bebas Neue', sans-serif;
     font-size: 20px;
     letter-spacing: 2px;
-    color: var(--muted);
+    color: var(--text);
   }
 
   .trend-lbl {
@@ -452,14 +461,13 @@
     letter-spacing: 2px;
     text-transform: uppercase;
     color: var(--muted);
-    opacity: 0.6;
   }
 
   .elapsed {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 28px;
     letter-spacing: 3px;
-    color: var(--muted);
+    color: var(--text);
   }
 
   @media (max-width: 600px) {
@@ -521,7 +529,7 @@
       </div>
       <div class="bt-pill" id="smoothPill" onclick="toggleSmoothing()" title="Toggle power smoothing">
         <div class="bt-dot" style="background:#ffe000"></div>
-        <span id="smoothLabel">3S AVG</span>
+        <span id="smoothLabel">5S AVG</span>
       </div>
     </div>
   </header>
@@ -532,7 +540,8 @@
       <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;">
         <div class="metric-label">POWER</div>
         <div class="power-value" id="powerVal">––</div>
-        <div class="power-unit">WATTS · <span id="pctFTP">–% FTP</span></div>
+        <div class="power-unit">WATTS</div>
+        <div id="pctFTPBadge" style="margin-top:10px;font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--zone-color);opacity:0.85;transition:color 0.5s;">–% <span style="font-size:16px;letter-spacing:2px;opacity:0.6;">FTP</span></div>
       </div>
     </div>
 
@@ -578,6 +587,7 @@
 
 <script>
 // ── ZONES ──────────────────────────────────────────────────────────────────
+function log(msg) { console.log('[stages-live]', msg); }
 const ZONES = [
   { num:1, name:"Active Recovery", short:"Recovery",   pLow:0,   pHigh:55,  color:"#4a9eff" },
   { num:2, name:"Endurance",       short:"Endurance",  pLow:56,  pHigh:75,  color:"#2ed573" },
@@ -591,8 +601,8 @@ const ZONES = [
 // ── STATE ──────────────────────────────────────────────────────────────────
 let ftp = 200;
 let livePower = 0, liveHR = 0, liveCad = 0;
-let rawPowerBuffer = [];       // rolling 3s buffer for smoothing
-const SMOOTH_WINDOW = 3;       // seconds
+let rawPowerBuffer = [];       // rolling 5s buffer for smoothing
+const SMOOTH_WINDOW = 5;       // seconds — matches Garmin/Wahoo default
 let smoothingEnabled = true;
 let currentZone = null;
 let stagesClient = null, polarClient = null;
@@ -673,10 +683,11 @@ function updateDisplay() {
   // Power
   if (livePower > 0) {
     document.getElementById('powerVal').textContent = livePower;
-    document.getElementById('pctFTP').textContent = `${Math.round((livePower / ftp) * 100)}% FTP`;
+    const pct = Math.round((livePower / ftp) * 100);
+    document.getElementById('pctFTPBadge').innerHTML = `${pct}% <span style="font-size:16px;letter-spacing:2px;opacity:0.6;">FTP</span>`;
   } else {
     document.getElementById('powerVal').textContent = '––';
-    document.getElementById('pctFTP').textContent = '–% FTP';
+    document.getElementById('pctFTPBadge').innerHTML = `–% <span style="font-size:16px;letter-spacing:2px;opacity:0.6;">FTP</span>`;
   }
 
   // HR (only update if element visible)
@@ -757,29 +768,33 @@ async function connectStages() {
   try {
     const device = await navigator.bluetooth.requestDevice({
       filters: [{ services: [CPS_SERVICE] }],
-      optionalServices: [CSC_SERVICE]
+      optionalServices: [CSC_SERVICE, '00001818-0000-1000-8000-00805f9b34fb']
     });
     device.addEventListener('gattserverdisconnected', () => {
       stagesConnected = false;
       setPill('stagesPill','idle');
       livePower = 0; liveCad = 0;
+      cpsCrankRevs = null; cpsCrankTime = null;
     });
     const server = await device.gatt.connect();
 
-    // Power
+    // Power + crank data
     const cpsSvc  = await server.getPrimaryService(CPS_SERVICE);
     const cpsChr  = await cpsSvc.getCharacteristic(CPS_MEASUREMENT);
     await cpsChr.startNotifications();
     cpsChr.addEventListener('characteristicvaluechanged', onPowerData);
 
-    // Cadence (optional — may not be present on all power meters)
+    // Request CSC service for cadence — more reliable than CPS crank data on SC3
+    let cscOk = false;
     try {
       const cscSvc = await server.getPrimaryService(CSC_SERVICE);
       const cscChr = await cscSvc.getCharacteristic(CSC_CHAR);
       await cscChr.startNotifications();
       cscChr.addEventListener('characteristicvaluechanged', onCadenceData);
+      cscOk = true;
+      log('CSC cadence service connected');
     } catch(_) {
-      // CSC not available — cadence comes from CPS crank data
+      log('No CSC service — using CPS crank revolution data for cadence');
     }
 
     stagesClient = device;
@@ -915,7 +930,7 @@ function startSession() {
 function toggleSmoothing() {
   smoothingEnabled = !smoothingEnabled;
   if (!smoothingEnabled) rawPowerBuffer = [];
-  document.getElementById('smoothLabel').textContent = smoothingEnabled ? '3S AVG' : 'RAW';
+  document.getElementById('smoothLabel').textContent = smoothingEnabled ? '5S AVG' : 'RAW';
   document.getElementById('smoothPill').style.opacity = smoothingEnabled ? '1' : '0.45';
 }
 
