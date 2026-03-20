@@ -15,7 +15,7 @@
     --surface2: #16161f;
     --border: #1e1e2e;
     --text: #e8e8f0;
-    --muted: #44445a;
+    --muted: #e8e8f0;
     --zone-color: #4a9eff;
     --zone-dim: color-mix(in srgb, var(--zone-color) 15%, transparent);
     --zone-mid: color-mix(in srgb, var(--zone-color) 40%, transparent);
@@ -507,9 +507,114 @@
     </button>
   </div>
   <button class="start-btn" id="startBtn" onclick="startSession()">START SESSION →</button>
+
+  <div style="width:100%;max-width:480px;margin-top:6px;">
+    <div style="font-size:9px;letter-spacing:2px;color:var(--muted);text-align:center;margin-bottom:8px;">── OR ──</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button onclick="startFTPTest(5)"  id="ftpBtn5"
+        style="flex:1;padding:12px 6px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;cursor:pointer;transition:all 0.2s;opacity:0.4;pointer-events:none;">
+        5 MIN<br><span style="font-size:9px;letter-spacing:1px;font-family:'DM Mono',monospace;">×0.85</span>
+      </button>
+      <button onclick="startFTPTest(10)" id="ftpBtn10"
+        style="flex:1;padding:12px 6px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;cursor:pointer;transition:all 0.2s;opacity:0.4;pointer-events:none;">
+        10 MIN<br><span style="font-size:9px;letter-spacing:1px;font-family:'DM Mono',monospace;">×0.90</span>
+      </button>
+      <button onclick="startFTPTest(20)" id="ftpBtn20"
+        style="flex:1;padding:12px 6px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;cursor:pointer;transition:all 0.2s;opacity:0.4;pointer-events:none;">
+        20 MIN<br><span style="font-size:9px;letter-spacing:1px;font-family:'DM Mono',monospace;">×0.95</span>
+      </button>
+    </div>
+    <div style="font-size:9px;letter-spacing:1px;color:var(--muted);text-align:center;margin-top:6px;opacity:0.6;">FTP TEST · ride all-out for the full duration</div>
+  </div>
 </div>
 
-<!-- ── MAIN APP ── -->
+<!-- ── FTP TEST SCREEN ── -->
+<div id="ftpTestScreen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:50;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:16px;">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;width:100%;max-width:500px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:4px;color:var(--text);" id="ftpTestTitle">FTP TEST · 20 MIN</div>
+    <button onclick="cancelFTPTest()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;padding:6px 12px;cursor:pointer;">CANCEL</button>
+  </div>
+
+  <!-- Countdown -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:500px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+    <div style="font-size:9px;letter-spacing:3px;color:var(--muted);">TIME REMAINING</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:80px;line-height:1;letter-spacing:4px;color:var(--text);" id="ftpCountdown">20:00</div>
+    <div id="ftpTimerBar" style="width:100%;height:4px;background:var(--surface2);border-radius:2px;margin-top:8px;overflow:hidden;">
+      <div id="ftpTimerFill" style="height:100%;background:#ff4757;border-radius:2px;width:100%;transition:width 1s linear;"></div>
+    </div>
+  </div>
+
+  <!-- Live power -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:500px;padding:20px;display:flex;flex-direction:column;align-items:center;" id="ftpPowerCard">
+    <div style="font-size:9px;letter-spacing:3px;color:var(--muted);">CURRENT POWER</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:96px;line-height:0.9;letter-spacing:2px;color:#ff4757;" id="ftpLivePower">––</div>
+    <div style="font-size:11px;letter-spacing:3px;color:var(--muted);">WATTS</div>
+  </div>
+
+  <!-- Avg + cadence + HR -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;width:100%;max-width:500px;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div style="font-size:8px;letter-spacing:2px;color:var(--muted);">AVG POWER</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px;color:var(--text);" id="ftpAvgPower">––</div>
+      <div style="font-size:9px;letter-spacing:1px;color:var(--muted);">W</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div style="font-size:8px;letter-spacing:2px;color:var(--muted);">CADENCE</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px;color:var(--text);" id="ftpCadence">––</div>
+      <div style="font-size:9px;letter-spacing:1px;color:var(--muted);">RPM</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div style="font-size:8px;letter-spacing:2px;color:var(--muted);">HEART RATE</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px;color:var(--text);" id="ftpHR">––</div>
+      <div style="font-size:9px;letter-spacing:1px;color:var(--muted);">BPM</div>
+    </div>
+  </div>
+
+  <!-- Instruction -->
+  <div style="font-size:10px;letter-spacing:1px;color:var(--muted);text-align:center;max-width:500px;line-height:1.8;" id="ftpInstruction">
+    Ride as hard as you can sustain for the full duration.<br>Aim for even pacing — avoid starting too hard.
+  </div>
+</div>
+
+<!-- ── FTP RESULT SCREEN ── -->
+<div id="ftpResultScreen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:50;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:16px;">
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:4px;color:#2ed573;">TEST COMPLETE</div>
+
+  <div style="background:var(--surface);border:1px solid #2ed573;border-radius:14px;width:100%;max-width:500px;padding:28px;display:flex;flex-direction:column;align-items:center;gap:8px;">
+    <div style="font-size:9px;letter-spacing:3px;color:var(--muted);">ESTIMATED FTP</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:100px;line-height:0.9;letter-spacing:2px;color:#2ed573;" id="ftpResult">––</div>
+    <div style="font-size:11px;letter-spacing:3px;color:var(--muted);">WATTS</div>
+    <div style="font-size:10px;letter-spacing:1px;color:var(--muted);margin-top:8px;" id="ftpResultDetail"></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:500px;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;">
+      <div style="font-size:8px;letter-spacing:2px;color:var(--muted);margin-bottom:4px;">AVG POWER</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--text);" id="ftpResultAvg">––</div>
+      <div style="font-size:9px;color:var(--muted);">W</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;">
+      <div style="font-size:8px;letter-spacing:2px;color:var(--muted);margin-bottom:4px;">DURATION</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--text);" id="ftpResultDuration">––</div>
+      <div style="font-size:9px;color:var(--muted);">MIN</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;width:100%;max-width:500px;">
+    <button onclick="saveFTPResult()"
+      style="flex:1;padding:16px;border-radius:8px;border:none;background:#2ed573;color:#08080f;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;cursor:pointer;">
+      SAVE AS MY FTP
+    </button>
+    <button onclick="discardFTPResult()"
+      style="padding:16px 20px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">
+      Discard
+    </button>
+  </div>
+</div>
+
+
 <div id="app">
   <header>
     <div class="logo" id="logoZone">POWER ZONES · LIVE</div>
@@ -529,7 +634,7 @@
       </div>
       <div class="bt-pill" id="smoothPill" onclick="toggleSmoothing()" title="Toggle power smoothing">
         <div class="bt-dot" style="background:#ffe000"></div>
-        <span id="smoothLabel">5S AVG</span>
+        <span id="smoothLabel">10S AVG</span>
       </div>
     </div>
   </header>
@@ -601,8 +706,8 @@ const ZONES = [
 // ── STATE ──────────────────────────────────────────────────────────────────
 let ftp = 200;
 let livePower = 0, liveHR = 0, liveCad = 0;
-let rawPowerBuffer = [];       // rolling 5s buffer for smoothing
-const SMOOTH_WINDOW = 5;       // seconds — matches Garmin/Wahoo default
+let rawPowerBuffer = [];       // rolling 10s buffer for smoothing
+const SMOOTH_WINDOW = 10;      // seconds — smooth out single-pedal-stroke spikes
 let smoothingEnabled = true;
 let currentZone = null;
 let stagesClient = null, polarClient = null;
@@ -740,6 +845,8 @@ function startTimer() {
 // ── BLUETOOTH ──────────────────────────────────────────────────────────────
 const CPS_SERVICE     = '00001818-0000-1000-8000-00805f9b34fb';
 const CPS_MEASUREMENT = '00002a63-0000-1000-8000-00805f9b34fb';
+const CPS_FEATURE     = '00002a65-0000-1000-8000-00805f9b34fb';
+const CPS_CONTROL     = '00002a66-0000-1000-8000-00805f9b34fb';
 const HR_SERVICE      = '0000180d-0000-1000-8000-00805f9b34fb';
 const HR_CHAR         = '00002a37-0000-1000-8000-00805f9b34fb';
 const CSC_SERVICE     = '00001816-0000-1000-8000-00805f9b34fb';
@@ -759,6 +866,14 @@ function setConnectBtn(id, subId, state, subText) {
 function checkStartReady() {
   const ready = stagesConnected;
   document.getElementById('startBtn').classList.toggle('ready', ready);
+  // Enable/disable FTP test buttons
+  ['ftpBtn5','ftpBtn10','ftpBtn20'].forEach(id => {
+    const btn = document.getElementById(id);
+    btn.style.opacity = ready ? '1' : '0.4';
+    btn.style.pointerEvents = ready ? 'all' : 'none';
+    btn.style.color = 'var(--text)';
+    if (ready) btn.style.borderColor = '#ff4757';
+  });
 }
 
 async function connectStages() {
@@ -768,7 +883,7 @@ async function connectStages() {
   try {
     const device = await navigator.bluetooth.requestDevice({
       filters: [{ services: [CPS_SERVICE] }],
-      optionalServices: [CSC_SERVICE, '00001818-0000-1000-8000-00805f9b34fb']
+      optionalServices: [CSC_SERVICE, CPS_CONTROL]
     });
     device.addEventListener('gattserverdisconnected', () => {
       stagesConnected = false;
@@ -783,6 +898,19 @@ async function connectStages() {
     const cpsChr  = await cpsSvc.getCharacteristic(CPS_MEASUREMENT);
     await cpsChr.startNotifications();
     cpsChr.addEventListener('characteristicvaluechanged', onPowerData);
+
+    // Write to CPS Control Point to request crank revolution data be included
+    // Op code 0x00 = Request Supported Sensor Locations (wakes up the control point)
+    // Op code 0x04 = Start Offset Compensation (some devices need this to enable crank data)
+    try {
+      const ctrl = await cpsSvc.getCharacteristic(CPS_CONTROL);
+      // Enable crank revolution data — write Set Crank Length op code
+      // Most power meters respond to any valid write by enabling full data
+      await ctrl.writeValueWithResponse(new Uint8Array([0x04]));
+      log('CPS Control Point write succeeded — crank data should now be active');
+    } catch(e) {
+      log(`CPS Control Point not available or write failed: ${e.message} — falling back to CSC`);
+    }
 
     // Request CSC service for cadence — more reliable than CPS crank data on SC3
     let cscOk = false;
@@ -846,11 +974,21 @@ async function connectPolar() {
 
 // ── BLE DATA PARSERS ───────────────────────────────────────────────────────
 let cpsCrankRevs = null, cpsCrankTime = null;
+let cadDiagDone = false;
 
 function onPowerData(e) {
   const d = e.target.value;
   const flags = d.getUint16(0, true);
   const rawPower = d.getInt16(2, true);
+
+  // Log the raw packet once so we can see what the SC3 sends
+  if (!cadDiagDone) {
+    const bytes = Array.from(new Uint8Array(d.buffer)).map(b => b.toString(16).padStart(2,'0')).join(' ');
+    log(`CPS packet (${d.byteLength} bytes): ${bytes}`);
+    log(`CPS flags: 0x${flags.toString(16).padStart(4,'0')} | power: ${rawPower}W`);
+    log(`Flags breakdown: wheel=${!!(flags&0x01)} crank=${!!(flags&0x10)} instCad=${!!(flags&0x04)}`);
+    cadDiagDone = true;
+  }
 
   // Rolling average smoothing
   rawPowerBuffer.push(rawPower);
@@ -859,26 +997,41 @@ function onPowerData(e) {
     ? Math.round(rawPowerBuffer.reduce((a,b) => a+b, 0) / rawPowerBuffer.length)
     : rawPower;
 
-  // Cadence from crank revolution data in CPS packet (flag bit 4 = 0x0010)
-  // Packet layout: flags(2) + power(2) [+ wheel data(6) if bit 0 set] + crank revs(2) + crank time(2)
+  // Try every possible cadence source in order of reliability
+
+  // 1. Crank revolution data in CPS (flag bit 4 = 0x0010)
   if (flags & 0x10) {
     const offset = 4 + ((flags & 0x01) ? 6 : 0);
     if (d.byteLength >= offset + 4) {
       const revs = d.getUint16(offset, true);
-      const time = d.getUint16(offset + 2, true); // 1/1024 sec units
+      const time = d.getUint16(offset + 2, true);
       if (cpsCrankRevs !== null) {
         const rd = (revs - cpsCrankRevs + 65536) % 65536;
         const td = (time - cpsCrankTime + 65536) % 65536;
-        if (td > 0 && rd > 0) {
+        if (rd > 0 && td > 0) {
           const rpm = Math.round((rd / (td / 1024)) * 60);
-          if (rpm > 0 && rpm < 250) liveCad = rpm;
+          if (rpm > 0 && rpm < 250) {
+            liveCad = rpm;
+            log(`Cadence from CPS crank revs: ${rpm} rpm`);
+          }
         } else if (td > 2048) {
-          // No movement for 2+ seconds — cadence is zero
           liveCad = 0;
         }
       }
       cpsCrankRevs = revs;
       cpsCrankTime = time;
+    }
+  }
+
+  // 2. Instantaneous cadence field (flag bit 2 = 0x0004)
+  if ((flags & 0x04) && liveCad === 0) {
+    const offset = 4 + ((flags & 0x01) ? 6 : 0);
+    if (d.byteLength > offset) {
+      const instCad = d.getUint8(offset);
+      if (instCad > 0 && instCad < 250) {
+        liveCad = instCad;
+        log(`Cadence from CPS inst field: ${instCad} rpm`);
+      }
     }
   }
 
@@ -915,6 +1068,116 @@ function onHRData(e) {
   updateDisplay();
 }
 
+// ── FTP TEST ───────────────────────────────────────────────────────────────
+let ftpTestDuration  = 0;   // minutes
+let ftpTestFactor    = 1.0;
+let ftpTestSeconds   = 0;   // total seconds remaining
+let ftpTestInterval  = null;
+let ftpTestPowers    = [];
+let ftpTestActive    = false;
+
+const FTP_FACTORS = { 5: 0.85, 10: 0.90, 20: 0.95 };
+
+function startFTPTest(minutes) {
+  ftpTestDuration = minutes;
+  ftpTestFactor   = FTP_FACTORS[minutes];
+  ftpTestSeconds  = minutes * 60;
+  ftpTestPowers   = [];
+  ftpTestActive   = true;
+
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('ftpTestTitle').textContent = `FTP TEST · ${minutes} MIN`;
+  document.getElementById('ftpCountdown').textContent = formatTime(ftpTestSeconds);
+  document.getElementById('ftpTimerFill').style.width = '100%';
+  document.getElementById('ftpLivePower').textContent = '––';
+  document.getElementById('ftpAvgPower').textContent  = '––';
+  document.getElementById('ftpCadence').textContent   = '––';
+  document.getElementById('ftpHR').textContent        = '––';
+  document.getElementById('ftpTestScreen').style.display = 'flex';
+
+  ftpTestInterval = setInterval(ftpTestTick, 1000);
+}
+
+function ftpTestTick() {
+  ftpTestSeconds--;
+
+  // Record current power
+  if (livePower > 0) ftpTestPowers.push(livePower);
+
+  // Update countdown
+  document.getElementById('ftpCountdown').textContent = formatTime(ftpTestSeconds);
+
+  // Update progress bar
+  const pct = (ftpTestSeconds / (ftpTestDuration * 60)) * 100;
+  document.getElementById('ftpTimerFill').style.width = pct + '%';
+
+  // Colour countdown red in last 60s
+  document.getElementById('ftpCountdown').style.color =
+    ftpTestSeconds <= 60 ? '#ff4757' : 'var(--text)';
+
+  // Update live metrics
+  document.getElementById('ftpLivePower').textContent = livePower > 0 ? livePower : '––';
+  document.getElementById('ftpCadence').textContent   = liveCad  > 0 ? liveCad  : '––';
+  document.getElementById('ftpHR').textContent        = liveHR   > 0 ? liveHR   : '––';
+
+  if (ftpTestPowers.length) {
+    const avg = Math.round(ftpTestPowers.reduce((a,b)=>a+b,0) / ftpTestPowers.length);
+    document.getElementById('ftpAvgPower').textContent = avg;
+  }
+
+  // Test complete
+  if (ftpTestSeconds <= 0) {
+    clearInterval(ftpTestInterval);
+    ftpTestActive = false;
+    showFTPResult();
+  }
+}
+
+function showFTPResult() {
+  const avg = ftpTestPowers.length
+    ? Math.round(ftpTestPowers.reduce((a,b)=>a+b,0) / ftpTestPowers.length)
+    : 0;
+  const estimated = Math.round(avg * ftpTestFactor);
+
+  document.getElementById('ftpTestScreen').style.display = 'none';
+  document.getElementById('ftpResult').textContent       = estimated;
+  document.getElementById('ftpResultAvg').textContent    = avg;
+  document.getElementById('ftpResultDuration').textContent = ftpTestDuration;
+  document.getElementById('ftpResultDetail').textContent =
+    `${ftpTestDuration} min avg ${avg}W × ${ftpTestFactor} = ${estimated}W estimated FTP`;
+  document.getElementById('ftpResultScreen').style.display = 'flex';
+}
+
+function saveFTPResult() {
+  const estimated = parseInt(document.getElementById('ftpResult').textContent);
+  if (estimated > 0) {
+    document.getElementById('ftpOverlay').value = estimated;
+    document.getElementById('ftpMain').value    = estimated;
+    ftp = estimated;
+    renderZoneBars();
+  }
+  document.getElementById('ftpResultScreen').style.display = 'none';
+  document.getElementById('overlay').classList.remove('hidden');
+}
+
+function discardFTPResult() {
+  document.getElementById('ftpResultScreen').style.display = 'none';
+  document.getElementById('overlay').classList.remove('hidden');
+}
+
+function cancelFTPTest() {
+  clearInterval(ftpTestInterval);
+  ftpTestActive = false;
+  document.getElementById('ftpTestScreen').style.display = 'none';
+  document.getElementById('overlay').classList.remove('hidden');
+}
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
 // ── SESSION START ──────────────────────────────────────────────────────────
 function startSession() {
   ftp = parseInt(document.getElementById('ftpOverlay').value) || 200;
@@ -930,7 +1193,7 @@ function startSession() {
 function toggleSmoothing() {
   smoothingEnabled = !smoothingEnabled;
   if (!smoothingEnabled) rawPowerBuffer = [];
-  document.getElementById('smoothLabel').textContent = smoothingEnabled ? '5S AVG' : 'RAW';
+  document.getElementById('smoothLabel').textContent = smoothingEnabled ? '10S AVG' : 'RAW';
   document.getElementById('smoothPill').style.opacity = smoothingEnabled ? '1' : '0.45';
 }
 
