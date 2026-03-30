@@ -945,7 +945,8 @@ async function connectPolar() {
     const device = await navigator.bluetooth.requestDevice({
       filters: [
         { namePrefix: 'Polar' },
-        { namePrefix: 'IC' },
+        { namePrefix: 'Stages' },
+        { services: [HR_SERVICE] },
       ],
       optionalServices: [HR_SERVICE]
     });
@@ -1016,10 +1017,10 @@ function onPowerData(e) {
       const rd = (revs - cpsCrankRevs + 65536) % 65536;
       const td = (time - cpsCrankTime  + 65536) % 65536;
       if (rd > 0 && td > 0) {
-        const rpm = Math.round((rd / 256) / (td / 1024) * 60);
+        const rpm = Math.round((rd / 295) / (td / 1024) * 60);
         if (rpm > 0 && rpm < 250) {
-          // Spike rejection — ignore readings >20rpm from current smoothed value
-          const spike = liveCad > 0 && Math.abs(rpm - liveCad) > 20;
+          // Spike rejection — ignore readings >25rpm from current smoothed value
+          const spike = liveCad > 0 && Math.abs(rpm - liveCad) > 25;
           if (!spike) {
             rawCadBuffer.push(rpm);
             if (rawCadBuffer.length > CAD_SMOOTH) rawCadBuffer.shift();
