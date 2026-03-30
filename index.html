@@ -47,7 +47,7 @@
     display: grid;
     grid-template-rows: auto 1fr auto;
     gap: 0;
-    padding: 12px;
+    padding: 6px 8px;
   }
 
   /* ── HEADER ── */
@@ -55,7 +55,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 4px;
+    padding: 4px 2px;
     border-bottom: 1px solid var(--border);
     margin-bottom: 12px;
   }
@@ -166,7 +166,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 16px 8px;
+    padding: 8px 4px;
     position: relative;
     overflow: hidden;
     transition: border-color 0.5s, box-shadow 0.5s;
@@ -174,7 +174,7 @@
 
   /* Primary power card */
   .metric-card.power-card {
-    padding: 20px;
+    padding: 10px;
     justify-content: center;
     align-items: center;
   }
@@ -194,13 +194,13 @@
     letter-spacing: 3px;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 6px;
+    margin-bottom: 2px;
   }
 
   .metric-value {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(48px, 10vw, 80px);
-    line-height: 1;
+    font-size: clamp(64px, 18vw, 22vh);
+    line-height: 0.9;
     color: var(--text);
     transition: color 0.5s;
     letter-spacing: 2px;
@@ -216,7 +216,7 @@
     font-size: 11px;
     letter-spacing: 2px;
     color: var(--muted);
-    margin-top: 4px;
+    margin-top: 2px;
   }
 
   /* Power card internals */
@@ -228,8 +228,8 @@
 
   .power-value {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(80px, 18vw, 140px);
-    line-height: 0.9;
+    font-size: clamp(100px, 28vw, 30vh);
+    line-height: 0.85;
     letter-spacing: 2px;
     color: var(--zone-color);
     text-shadow: 0 0 60px color-mix(in srgb, var(--zone-color) 40%, transparent);
@@ -237,10 +237,10 @@
   }
 
   .power-unit {
-    font-size: 13px;
+    font-size: 12px;
     letter-spacing: 3px;
     color: var(--muted);
-    margin-top: 4px;
+    margin-top: 2px;
   }
 
   .zone-badge {
@@ -280,8 +280,8 @@
   .zone-bars {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-    padding-top: 10px;
+    gap: 3px;
+    padding-top: 4px;
   }
 
   .zone-bar-item {
@@ -1295,6 +1295,118 @@ function init() {
     ftp = parseInt(this.value) || 200;
     renderZoneBars();
   });
+
+  // Auto-connect to previously paired devices
+  autoConnect();
+}
+
+async function autoConnect() {
+  if (!navigator.bluetooth?.getDevices) return;
+  let devices;
+  try { devices = await navigator.bluetooth.getDevices(); } catch(e) { return; }
+  if (!devices.length) return;
+
+  log(`Auto-connect: found ${devices.length} previously paired device(s)`);
+
+  for (const device of devices) {
+    const name = device.name || '';
+    log(`Auto-connect candidate: "${name}"`);
+
+    // Watch for the device to start advertising then connect
+    device.addEventListener('advertisementreceived', async (e) => {
+      device.removeEventListener('advertisementreceived', arguments.callee);
+      try {
+        if (isStageName(name) && hasCPS(e) && !stagesConnected) {
+          log(`Auto-connecting Stages: ${name}`);
+          await connectDeviceAsStages(device);
+        } else if (isXossName(name) && !xossConnected) {
+          log(`Auto-connecting XOSS: ${name}`);
+          await connectDeviceAsXoss(device);
+        } else if (isHRName(name) && !polarConnected) {
+          log(`Auto-connecting HR: ${name}`);
+          await connectDeviceAsPolar(device);
+        }
+      } catch(err) { log(`Auto-connect failed for ${name}: ${err.message}`); }
+    });
+
+    try {
+      await device.watchAdvertisements({ signal: AbortSignal.timeout(15000) });
+    } catch(e) { /* device not available */ }
+  }
+}
+
+function isStageName(n) { return /stages/i.test(n) && !/ic\d/i.test(n); }
+function isXossName(n)   { return /xoss/i.test(n); }
+function isHRName(n)     { return /polar/i.test(n) || /ic\d/i.test(n) || /stages.*ic/i.test(n); }
+function hasCPS(e)       {
+  try { return e.uuids && e.uuids.includes('00001818-0000-1000-8000-00805f9b34fb'); }
+  catch(_) { return true; } // assume CPS if uuids not available
+}
+
+// ── Shared device connection helpers ──────────────────────────────────────
+async function connectDeviceAsStages(device) {
+  setPill('stagesPill', 'connecting');
+  setConnectBtn('stagesBtn','stagesSub','connecting','Connecting…');
+  device.addEventListener('gattserverdisconnected', () => {
+    stagesConnected = false; setPill('stagesPill','idle');
+    livePower = 0; liveCad = 0; cpsCrankRevs = null; cpsCrankTime = null;
+  });
+  const server = await device.gatt.connect();
+  const cpsSvc = await server.getPrimaryService(CPS_SERVICE);
+  const cpsChr = await cpsSvc.getCharacteristic(CPS_MEASUREMENT);
+  await cpsChr.startNotifications();
+  cpsChr.addEventListener('characteristicvaluechanged', onPowerData);
+  try {
+    const ctrl = await cpsSvc.getCharacteristic(CPS_CONTROL);
+    await ctrl.writeValueWithResponse(new Uint8Array([0x04]));
+  } catch(_) {}
+  try {
+    const cscSvc = await server.getPrimaryService(CSC_SERVICE);
+    const cscChr = await cscSvc.getCharacteristic(CSC_CHAR);
+    await cscChr.startNotifications();
+    cscChr.addEventListener('characteristicvaluechanged', onCadenceData);
+  } catch(_) {}
+  stagesConnected = true;
+  setPill('stagesPill','connected');
+  setConnectBtn('stagesBtn','stagesSub','done', device.name || 'Stages SC3');
+  checkStartReady();
+}
+
+async function connectDeviceAsXoss(device) {
+  setPill('xossPill', 'connecting');
+  setConnectBtn('xossBtn','xossSub','connecting','Connecting…');
+  device.addEventListener('gattserverdisconnected', () => {
+    xossConnected = false; setPill('xossPill','idle');
+    liveCad = 0; rawCadBuffer = [];
+  });
+  const server = await device.gatt.connect();
+  const cscSvc = await server.getPrimaryService(CSC_SERVICE);
+  const cscChr = await cscSvc.getCharacteristic(CSC_CHAR);
+  await cscChr.startNotifications();
+  cscChr.addEventListener('characteristicvaluechanged', onXossData);
+  xossConnected = true;
+  setPill('xossPill','connected');
+  setConnectBtn('xossBtn','xossSub','done', device.name || 'XOSS');
+  checkStartReady();
+}
+
+async function connectDeviceAsPolar(device) {
+  setPill('polarPill', 'connecting');
+  setConnectBtn('polarBtn','polarSub','connecting','Connecting…');
+  device.addEventListener('gattserverdisconnected', () => {
+    polarConnected = false; setPill('polarPill','idle'); liveHR = 0;
+  });
+  const server = await device.gatt.connect();
+  const hrSvc  = await server.getPrimaryService(HR_SERVICE);
+  const hrChr  = await hrSvc.getCharacteristic(HR_CHAR);
+  await hrChr.startNotifications();
+  hrChr.addEventListener('characteristicvaluechanged', onHRData);
+  polarConnected = true;
+  setPill('polarPill','connected');
+  setConnectBtn('polarBtn','polarSub','done', device.name || 'HR');
+  document.getElementById('hrCard').style.display = 'flex';
+  document.querySelector('.metrics').classList.add('with-hr');
+  checkStartReady();
 }
 
 init();
