@@ -943,7 +943,10 @@ async function connectPolar() {
   setConnectBtn('polarBtn','polarSub','connecting','Connecting…');
   try {
     const device = await navigator.bluetooth.requestDevice({
-      filters: [{ services: [HR_SERVICE] }]
+      filters: [
+        { services: [HR_SERVICE], namePrefix: 'Polar' },
+        { services: [HR_SERVICE], namePrefix: 'polar' },
+      ]
     });
     device.addEventListener('gattserverdisconnected', () => {
       polarConnected = false;
@@ -1014,11 +1017,15 @@ function onPowerData(e) {
       if (rd > 0 && td > 0) {
         const rpm = Math.round((rd / 256) / (td / 1024) * 60);
         if (rpm > 0 && rpm < 250) {
-          rawCadBuffer.push(rpm);
-          if (rawCadBuffer.length > CAD_SMOOTH) rawCadBuffer.shift();
-          liveCad = Math.round(rawCadBuffer.reduce((a,b) => a+b, 0) / rawCadBuffer.length);
+          // Spike rejection — ignore readings >20rpm from current smoothed value
+          const spike = liveCad > 0 && Math.abs(rpm - liveCad) > 20;
+          if (!spike) {
+            rawCadBuffer.push(rpm);
+            if (rawCadBuffer.length > CAD_SMOOTH) rawCadBuffer.shift();
+            liveCad = Math.round(rawCadBuffer.reduce((a,b) => a+b, 0) / rawCadBuffer.length);
+          }
           lastCrankWallTime = now;
-          log(`Cadence: ${liveCad} rpm (raw=${rpm})`);
+          log(`Cadence: ${liveCad} rpm (raw=${rpm}${spike?' SPIKE REJECTED':''})`);
         }
       }
     }
@@ -1030,7 +1037,7 @@ function onPowerData(e) {
 }
 
 let rawCadBuffer = [];
-const CAD_SMOOTH  = 5;
+const CAD_SMOOTH  = 8;
 let   lastCrankWallTime = 0;
 
 let lastCrankRevs = null, lastCrankTime = null;
