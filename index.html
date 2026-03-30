@@ -882,11 +882,8 @@ async function connectStages() {
   setConnectBtn('stagesBtn','stagesSub','connecting','Connecting…');
   try {
     const device = await navigator.bluetooth.requestDevice({
-      filters: [
-        { services: [CPS_SERVICE] },
-        { services: [CSC_SERVICE] },
-      ],
-      optionalServices: [CPS_CONTROL]
+      filters: [{ services: [CPS_SERVICE] }],
+      optionalServices: [CSC_SERVICE, CPS_CONTROL, HR_SERVICE]
     });
     device.addEventListener('gattserverdisconnected', () => {
       stagesConnected = false;
@@ -895,6 +892,10 @@ async function connectStages() {
       cpsCrankRevs = null; cpsCrankTime = null;
     });
     const server = await device.gatt.connect();
+
+    // Force full service discovery on Android — without this optional services
+    // are not accessible even if declared in the request
+    try { await server.getPrimaryServices(); } catch(_) {}
 
     // Power + crank data
     const cpsSvc  = await server.getPrimaryService(CPS_SERVICE);
@@ -1000,28 +1001,19 @@ function onPowerData(e) {
     ? Math.round(rawPowerBuffer.reduce((a,b) => a+b, 0) / rawPowerBuffer.length)
     : rawPower;
 
-  // Cadence from crank revolution data in CPS (flag bit 4 = 0x0010)
-  // Packet layout: flags(2) + power(2) [+ wheel data(6) if bit 0 set] + crank revs(2) + crank time(2)
-  if (flags & 0x10) {
-    const offset = 4 + ((flags & 0x01) ? 6 : 0);
-    if (d.byteLength >= offset + 4) {
-      const revs = d.getUint16(offset, true);
-      const time = d.getUint16(offset + 2, true);
-      if (cpsCrankRevs !== null) {
-        const rd = (revs - cpsCrankRevs + 65536) % 65536;
-        const td = (time - cpsCrankTime + 65536) % 65536;
-        if (rd > 0 && td > 0) {
-          const rpm = Math.round((rd / (td / 1024)) * 60);
-          if (rpm > 0 && rpm < 250) {
-            liveCad = rpm;
-            log(`Cadence from CPS crank revs: ${rpm} rpm`);
-          }
-        } else if (td > 2048) {
-          liveCad = 0;
-        }
-      }
-      cpsCrankRevs = revs;
-      cpsCrankTime = time;
+  // SC3 sends instantaneous cadence (flag bit 2 = 0x0004) at offset 4
+  // Per BLE CPS spec: value is in units of 1/2 rpm, so divide by 2
+  // No wheel data (flag bit 0 = false) so no offset adjustment needed
+  if (flags & 0x04) {
+    const rawCad = d.getUint16(4, true); // e.g. 0x0f38 = 3896 → 3896/2 = 56 rpm? No...
+    // Actually per spec instantaneous cadence is already in rpm as uint16
+    // but Stages may send it differently — try both interpretations
+    const cadA = rawCad;           // direct rpm
+    const cadB = Math.round(rawCad / 2); // half-rpm units
+    const cad  = cadB > 0 && cadB < 250 ? cadB : (cadA > 0 && cadA < 250 ? cadA : 0);
+    if (cad > 0) {
+      liveCad = cad;
+      log(`Instantaneous cadence: raw=${rawCad} cadA=${cadA} cadB=${cadB} → using ${cad} rpm`);
     }
   }
 
