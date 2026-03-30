@@ -141,20 +141,33 @@
   .metrics {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 10px;
+    grid-template-rows: 1fr auto;
+    gap: 8px;
     align-items: stretch;
   }
 
   .metrics.with-hr {
     grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+
+  .metrics-secondary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
 
   @media (min-width: 600px) {
     .metrics {
       grid-template-columns: 2fr 1fr;
+      grid-template-rows: 1fr;
     }
     .metrics.with-hr {
       grid-template-columns: 2fr 1fr 1fr;
+      grid-template-rows: 1fr;
+    }
+    .metrics-secondary {
+      display: contents;
     }
   }
 
@@ -199,7 +212,7 @@
 
   .metric-value {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(64px, 18vw, 22vh);
+    font-size: clamp(64px, 14vh, 20vh);
     line-height: 0.9;
     color: var(--text);
     transition: color 0.5s;
@@ -228,7 +241,7 @@
 
   .power-value {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(100px, 28vw, 30vh);
+    font-size: clamp(120px, 35vw, 38vh);
     line-height: 0.85;
     letter-spacing: 2px;
     color: var(--zone-color);
@@ -658,18 +671,18 @@
       </div>
     </div>
 
-    <!-- CADENCE CARD -->
-    <div class="metric-card" id="cadCard">
-      <div class="metric-label">CADENCE</div>
-      <div class="metric-value live" id="cadVal">––</div>
-      <div class="metric-unit">RPM</div>
-    </div>
-
-    <!-- HR CARD — shown only when Polar connected -->
-    <div class="metric-card" id="hrCard" style="display:none;">
-      <div class="metric-label">HEART RATE</div>
-      <div class="metric-value live" id="hrVal">––</div>
-      <div class="metric-unit">BPM</div>
+    <!-- CADENCE + HR side by side -->
+    <div class="metrics-secondary">
+      <div class="metric-card" id="cadCard">
+        <div class="metric-label">CADENCE</div>
+        <div class="metric-value live" id="cadVal">––</div>
+        <div class="metric-unit">RPM</div>
+      </div>
+      <div class="metric-card" id="hrCard" style="display:none;">
+        <div class="metric-label">HEART RATE</div>
+        <div class="metric-value live" id="hrVal">––</div>
+        <div class="metric-unit">BPM</div>
+      </div>
     </div>
   </div>
 
