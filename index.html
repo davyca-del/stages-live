@@ -979,14 +979,9 @@ function onPowerData(e) {
   const flags = d.getUint16(0, true);
   const rawPower = d.getInt16(2, true);
 
-  // Log the raw packet once so we can see what the SC3 sends
-  if (!cadDiagDone) {
-    const bytes = Array.from(new Uint8Array(d.buffer)).map(b => b.toString(16).padStart(2,'0')).join(' ');
-    log(`CPS packet (${d.byteLength} bytes): ${bytes}`);
-    log(`CPS flags: 0x${flags.toString(16).padStart(4,'0')} | power: ${rawPower}W`);
-    log(`Flags breakdown: wheel=${!!(flags&0x01)} crank=${!!(flags&0x10)} instCad=${!!(flags&0x04)}`);
-    cadDiagDone = true;
-  }
+  // Log every packet so we can see the full sequence
+  const bytes = Array.from(new Uint8Array(d.buffer)).map(b => b.toString(16).padStart(2,'0')).join(' ');
+  log(`CPS packet (${d.byteLength} bytes): ${bytes} | flags: 0x${flags.toString(16).padStart(4,'0')} power: ${rawPower}W`);
 
   // Rolling average smoothing
   rawPowerBuffer.push(rawPower);
@@ -1002,15 +997,17 @@ function onPowerData(e) {
   if (flags & 0x04) {
     const revs = d.getUint16(4, true);
     const time = d.getUint16(6, true);
+    log(`Crank raw: revs=${revs} time=${time} | prev: revs=${cpsCrankRevs} time=${cpsCrankTime}`);
     if (cpsCrankRevs !== null) {
       const rd = (revs - cpsCrankRevs + 65536) % 65536;
       const td = (time - cpsCrankTime + 65536) % 65536;
+      log(`Delta: rd=${rd} td=${td}`);
       if (rd > 0 && td > 0) {
         const rpm = Math.round((rd / (td / 1024)) * 60);
         if (rpm > 0 && rpm < 250) liveCad = rpm;
-        log(`Cadence: ${rpm} rpm (rd=${rd} td=${td})`);
+        log(`Cadence: ${rpm} rpm`);
       } else if (td > 2048) {
-        liveCad = 0; // no movement for 2+ seconds
+        liveCad = 0;
       }
     }
     cpsCrankRevs = revs;
