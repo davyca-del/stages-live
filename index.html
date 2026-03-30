@@ -496,14 +496,18 @@
       style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;text-align:center;padding:8px;outline:none;">
     <span style="font-size:10px;letter-spacing:2px;color:var(--muted);">WATTS</span>
   </div>
-  <div class="connect-grid">
+  <div class="connect-grid" style="grid-template-columns:1fr 1fr 1fr;">
     <button class="connect-btn" id="stagesBtn" onclick="connectStages()">
       <span>⚡ STAGES SC3</span>
-      <span class="connect-btn-sub" id="stagesSub">Power · Cadence</span>
+      <span class="connect-btn-sub" id="stagesSub">Power</span>
+    </button>
+    <button class="connect-btn" id="xossBtn" onclick="connectXoss()">
+      <span>↻ CADENCE</span>
+      <span class="connect-btn-sub" id="xossSub">XOSS · optional</span>
     </button>
     <button class="connect-btn" id="polarBtn" onclick="connectPolar()">
       <span>♥ HEART RATE</span>
-      <span class="connect-btn-sub" id="polarSub">Polar H10 or IC1000</span>
+      <span class="connect-btn-sub" id="polarSub">Polar or IC1000 · optional</span>
     </button>
   </div>
   <button class="start-btn" id="startBtn" onclick="startSession()">START SESSION →</button>
@@ -628,6 +632,10 @@
         <div class="bt-dot"></div>
         <span>STAGES</span>
       </div>
+      <div class="bt-pill" id="xossPill" onclick="connectXoss()">
+        <div class="bt-dot"></div>
+        <span>XOSS</span>
+      </div>
       <div class="bt-pill" id="polarPill" onclick="connectPolar()">
         <div class="bt-dot"></div>
         <span>HR</span>
@@ -711,7 +719,7 @@ const SMOOTH_WINDOW = 10;      // seconds — smooth out single-pedal-stroke spi
 let smoothingEnabled = true;
 let currentZone = null;
 let stagesClient = null, polarClient = null;
-let stagesConnected = false, polarConnected = false;
+let stagesConnected = false, polarConnected = false, xossConnected = false;
 let sessionActive = false;
 let sessionStart = null;
 let powerHistory = [], hrHistory = [], cadHistory = [];
@@ -975,7 +983,81 @@ async function connectPolar() {
   }
 }
 
-// ── BLE DATA PARSERS ───────────────────────────────────────────────────────
+async function connectXoss() {
+  if (!navigator.bluetooth) return;
+  setPill('xossPill', 'connecting');
+  setConnectBtn('xossBtn','xossSub','connecting','Connecting…');
+  try {
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [
+        { namePrefix: 'XOSS' },
+        { namePrefix: 'xoss' },
+        { services: [CSC_SERVICE] },
+      ],
+      optionalServices: [CSC_SERVICE]
+    });
+    device.addEventListener('gattserverdisconnected', () => {
+      xossConnected = false;
+      setPill('xossPill','idle');
+      liveCad = 0;
+      rawCadBuffer = [];
+    });
+    const server = await device.gatt.connect();
+    const cscSvc = await server.getPrimaryService(CSC_SERVICE);
+    const cscChr = await cscSvc.getCharacteristic(CSC_CHAR);
+    await cscChr.startNotifications();
+    cscChr.addEventListener('characteristicvaluechanged', onXossData);
+    xossConnected = true;
+    setPill('xossPill','connected');
+    setConnectBtn('xossBtn','xossSub','done', device.name || 'XOSS');
+  } catch(e) {
+    setPill('xossPill','idle');
+    setConnectBtn('xossBtn','xossSub','','XOSS · optional');
+    if (e.name !== 'NotFoundError') alert('Cadence sensor connection failed: ' + e.message);
+  }
+}
+
+let xossCrankRevs = null, xossCrankTime = null;
+let xossWallTime = 0;
+
+function onXossData(e) {
+  const d = e.target.value;
+  const flags = d.getUint8(0);
+  const hasCrank = (flags & 0x02) !== 0;
+  if (!hasCrank) return;
+  const hasWheel = (flags & 0x01) !== 0;
+  const offset = hasWheel ? 5 : 1;
+  const revs = d.getUint16(offset, true);
+  const time = d.getUint16(offset + 2, true);
+  const now = Date.now();
+
+  if (xossWallTime > 0 && (now - xossWallTime) > 3000) {
+    liveCad = 0;
+    rawCadBuffer = [];
+  }
+
+  if (xossCrankRevs !== null) {
+    const rd = (revs - xossCrankRevs + 65536) % 65536;
+    const td = (time - xossCrankTime + 65536) % 65536;
+    if (rd > 0 && td > 0) {
+      const rpm = Math.round((rd / (td / 1024)) * 60);
+      if (rpm > 0 && rpm < 250) {
+        const spike = liveCad > 0 && Math.abs(rpm - liveCad) > 25;
+        if (!spike) {
+          rawCadBuffer.push(rpm);
+          if (rawCadBuffer.length > CAD_SMOOTH) rawCadBuffer.shift();
+          liveCad = Math.round(rawCadBuffer.reduce((a,b) => a+b, 0) / rawCadBuffer.length);
+        }
+        xossWallTime = now;
+      }
+    }
+  }
+  xossCrankRevs = revs;
+  xossCrankTime = time;
+  updateDisplay();
+}
+
+
 let cpsCrankRevs = null, cpsCrankTime = null;
 let cadDiagDone = false;
 
@@ -1002,7 +1084,8 @@ function onPowerData(e) {
   // - uint16 cumulative crank revolutions (offset 4)
   // - uint16 last crank event time in 1/1024s units (offset 6)
   // RPM is calculated from the delta between consecutive readings
-  if (flags & 0x04) {
+  // Only use SC3 cadence if XOSS not connected
+  if (!xossConnected && flags & 0x04) {
     const revs = d.getUint16(4, true);
     const time = d.getUint16(8, true);
     const now  = Date.now();
