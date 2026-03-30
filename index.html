@@ -893,10 +893,6 @@ async function connectStages() {
     });
     const server = await device.gatt.connect();
 
-    // Force full service discovery on Android — without this optional services
-    // are not accessible even if declared in the request
-    try { await server.getPrimaryServices(); } catch(_) {}
-
     // Power + crank data
     const cpsSvc  = await server.getPrimaryService(CPS_SERVICE);
     const cpsChr  = await cpsSvc.getCharacteristic(CPS_MEASUREMENT);
@@ -1001,19 +997,15 @@ function onPowerData(e) {
     ? Math.round(rawPowerBuffer.reduce((a,b) => a+b, 0) / rawPowerBuffer.length)
     : rawPower;
 
-  // SC3 sends instantaneous cadence (flag bit 2 = 0x0004) at offset 4
-  // Per BLE CPS spec: value is in units of 1/2 rpm, so divide by 2
-  // No wheel data (flag bit 0 = false) so no offset adjustment needed
+  // SC3 sends instantaneous cadence (flag 0x0004) as uint8 at offset 4
   if (flags & 0x04) {
-    const rawCad = d.getUint16(4, true); // e.g. 0x0f38 = 3896 → 3896/2 = 56 rpm? No...
-    // Actually per spec instantaneous cadence is already in rpm as uint16
-    // but Stages may send it differently — try both interpretations
-    const cadA = rawCad;           // direct rpm
-    const cadB = Math.round(rawCad / 2); // half-rpm units
-    const cad  = cadB > 0 && cadB < 250 ? cadB : (cadA > 0 && cadA < 250 ? cadA : 0);
-    if (cad > 0) {
+    const cad = d.getUint8(4);
+    if (cad > 0 && cad < 250) {
       liveCad = cad;
-      log(`Instantaneous cadence: raw=${rawCad} cadA=${cadA} cadB=${cadB} → using ${cad} rpm`);
+      log(`Cadence: ${cad} rpm (uint8 @ offset 4)`);
+    } else {
+      log(`Cadence byte @ offset 4: ${cad} (out of range, zeroing)`);
+      liveCad = 0;
     }
   }
 
