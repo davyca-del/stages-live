@@ -995,16 +995,26 @@ function onPowerData(e) {
     ? Math.round(rawPowerBuffer.reduce((a,b) => a+b, 0) / rawPowerBuffer.length)
     : rawPower;
 
-  // SC3 sends instantaneous cadence (flag 0x0004) as uint16 at offset 4
-  // BLE CPS spec: instantaneous cadence in units of 1/2 rpm (resolution 0.5 rpm)
+  // SC3 encodes cadence data at offset 4 as:
+  // - uint16 cumulative crank revolutions (offset 4)
+  // - uint16 last crank event time in 1/1024s units (offset 6)
+  // RPM is calculated from the delta between consecutive readings
   if (flags & 0x04) {
-    const rawCad = d.getUint16(4, true);
-    const cad = Math.round(rawCad / 2);
-    if (cad > 0 && cad < 250) {
-      liveCad = cad;
-    } else if (rawCad === 0) {
-      liveCad = 0;
+    const revs = d.getUint16(4, true);
+    const time = d.getUint16(6, true);
+    if (cpsCrankRevs !== null) {
+      const rd = (revs - cpsCrankRevs + 65536) % 65536;
+      const td = (time - cpsCrankTime + 65536) % 65536;
+      if (rd > 0 && td > 0) {
+        const rpm = Math.round((rd / (td / 1024)) * 60);
+        if (rpm > 0 && rpm < 250) liveCad = rpm;
+        log(`Cadence: ${rpm} rpm (rd=${rd} td=${td})`);
+      } else if (td > 2048) {
+        liveCad = 0; // no movement for 2+ seconds
+      }
     }
+    cpsCrankRevs = revs;
+    cpsCrankTime = time;
   }
 
   updateDisplay();
