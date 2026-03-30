@@ -960,9 +960,7 @@ async function connectPolar() {
     polarConnected = true;
     setPill('polarPill','connected');
     setConnectBtn('polarBtn','polarSub','done', device.name || 'Polar H10');
-    // Show HR card now that Polar is connected
     document.getElementById('hrCard').style.display = 'flex';
-    document.getElementById('hrCard').style.removeProperty('display');
     document.querySelector('.metrics').classList.add('with-hr');
     checkStartReady();
   } catch(e) {
@@ -997,14 +995,14 @@ function onPowerData(e) {
     ? Math.round(rawPowerBuffer.reduce((a,b) => a+b, 0) / rawPowerBuffer.length)
     : rawPower;
 
-  // SC3 sends instantaneous cadence (flag 0x0004) as uint8 at offset 4
+  // SC3 sends instantaneous cadence (flag 0x0004) as uint16 at offset 4
+  // BLE CPS spec: instantaneous cadence in units of 1/2 rpm (resolution 0.5 rpm)
   if (flags & 0x04) {
-    const cad = d.getUint8(4);
+    const rawCad = d.getUint16(4, true);
+    const cad = Math.round(rawCad / 2);
     if (cad > 0 && cad < 250) {
       liveCad = cad;
-      log(`Cadence: ${cad} rpm (uint8 @ offset 4)`);
-    } else {
-      log(`Cadence byte @ offset 4: ${cad} (out of range, zeroing)`);
+    } else if (rawCad === 0) {
       liveCad = 0;
     }
   }
