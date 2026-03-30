@@ -999,17 +999,20 @@ function onPowerData(e) {
   // RPM is calculated from the delta between consecutive readings
   if (flags & 0x04) {
     const revs = d.getUint16(4, true); // cumulative revs in 1/256 units
-    const time = d.getUint16(8, true); // crank event time in 1/1024s units
+    const time = d.getUint16(8, true); // crank event timestamp in 1/1024s units
     if (cpsCrankRevs !== null) {
-      const rd = (revs - cpsCrankRevs + 65536) % 65536; // in 1/256 rev units
-      const td = (time - cpsCrankTime  + 65536) % 65536; // in 1/1024s units
-      log(`rd=${rd} td=${td}`);
+      const rd = (revs - cpsCrankRevs + 65536) % 65536;
+      const td = (time  - cpsCrankTime  + 65536) % 65536;
+      // Skip duplicate packets (SC3 sends each measurement twice)
       if (rd > 0 && td > 0) {
-        // Convert: (rd/256 revs) / (td/1024 seconds) * 60 = rpm
+        // rd is in 1/256 rev units, td is in 1/1024s units
         const rpm = Math.round((rd / 256) / (td / 1024) * 60);
-        if (rpm > 0 && rpm < 250) liveCad = rpm;
-        log(`Cadence: ${rpm} rpm`);
-      } else if (td > 2048) {
+        if (rpm > 0 && rpm < 250) {
+          liveCad = rpm;
+          log(`Cadence: ${rpm} rpm (rd=${rd} td=${td})`);
+        }
+      } else if (td > 3072) {
+        // No movement for 3+ seconds
         liveCad = 0;
       }
     }
