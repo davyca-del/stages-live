@@ -140,34 +140,28 @@
   /* ── MAIN METRICS ── */
   .metrics {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr auto;
     gap: 8px;
     align-items: stretch;
   }
 
-  .metrics.with-hr {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr auto;
+  .metric-card.power-card {
+    grid-column: 1 / -1;
   }
 
   .metrics-secondary {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    display: contents;
   }
 
   @media (min-width: 600px) {
     .metrics {
-      grid-template-columns: 2fr 1fr;
-      grid-template-rows: 1fr;
-    }
-    .metrics.with-hr {
       grid-template-columns: 2fr 1fr 1fr;
       grid-template-rows: 1fr;
     }
-    .metrics-secondary {
-      display: contents;
+    .metric-card.power-card {
+      grid-column: 1;
+      grid-row: 1;
     }
   }
 
@@ -1314,7 +1308,10 @@ function init() {
 }
 
 async function autoConnect() {
-  if (!navigator.bluetooth?.getDevices) return;
+  if (!navigator.bluetooth?.getDevices) {
+    log('Auto-connect not supported in this browser');
+    return;
+  }
   let devices;
   try { devices = await navigator.bluetooth.getDevices(); } catch(e) { return; }
   if (!devices.length) return;
@@ -1323,38 +1320,26 @@ async function autoConnect() {
 
   for (const device of devices) {
     const name = device.name || '';
-    log(`Auto-connect candidate: "${name}"`);
-
-    // Watch for the device to start advertising then connect
-    device.addEventListener('advertisementreceived', async (e) => {
-      device.removeEventListener('advertisementreceived', arguments.callee);
-      try {
-        if (isStageName(name) && hasCPS(e) && !stagesConnected) {
-          log(`Auto-connecting Stages: ${name}`);
-          await connectDeviceAsStages(device);
-        } else if (isXossName(name) && !xossConnected) {
-          log(`Auto-connecting XOSS: ${name}`);
-          await connectDeviceAsXoss(device);
-        } else if (isHRName(name) && !polarConnected) {
-          log(`Auto-connecting HR: ${name}`);
-          await connectDeviceAsPolar(device);
-        }
-      } catch(err) { log(`Auto-connect failed for ${name}: ${err.message}`); }
-    });
-
+    log(`Auto-connect trying: "${name}"`);
+    // Small stagger so we don't hammer BT stack simultaneously
+    await new Promise(r => setTimeout(r, 500));
     try {
-      await device.watchAdvertisements({ signal: AbortSignal.timeout(15000) });
-    } catch(e) { /* device not available */ }
+      if (isXossName(name) && !xossConnected) {
+        await connectDeviceAsXoss(device);
+      } else if (isStageName(name) && !stagesConnected) {
+        await connectDeviceAsStages(device);
+      } else if (isHRName(name) && !polarConnected) {
+        await connectDeviceAsPolar(device);
+      }
+    } catch(e) {
+      log(`Auto-connect failed for "${name}": ${e.message}`);
+    }
   }
 }
 
 function isStageName(n) { return /stages/i.test(n) && !/ic\d/i.test(n); }
 function isXossName(n)   { return /xoss/i.test(n); }
 function isHRName(n)     { return /polar/i.test(n) || /ic\d/i.test(n) || /stages.*ic/i.test(n); }
-function hasCPS(e)       {
-  try { return e.uuids && e.uuids.includes('00001818-0000-1000-8000-00805f9b34fb'); }
-  catch(_) { return true; } // assume CPS if uuids not available
-}
 
 // ── Shared device connection helpers ──────────────────────────────────────
 async function connectDeviceAsStages(device) {
