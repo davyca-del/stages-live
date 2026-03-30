@@ -485,7 +485,7 @@
   <div class="overlay-title">POWER ZONES · LIVE</div>
   <div class="overlay-sub">
     Connect your Stages SC3 to begin<br>
-    Polar H10 is optional — add heart rate any time
+    Heart rate is optional — connect Polar H10 directly, or IC1000 if using the bike display
   </div>
   <div id="noBtWarn" class="no-bt-warn" style="display:none;">
     ⚠ Web Bluetooth not available — use Chrome or Edge on desktop/Android
@@ -502,8 +502,8 @@
       <span class="connect-btn-sub" id="stagesSub">Power · Cadence</span>
     </button>
     <button class="connect-btn" id="polarBtn" onclick="connectPolar()">
-      <span>♥ POLAR H10</span>
-      <span class="connect-btn-sub" id="polarSub">Heart Rate · connect after Stages</span>
+      <span>♥ HEART RATE</span>
+      <span class="connect-btn-sub" id="polarSub">Polar H10 or IC1000</span>
     </button>
   </div>
   <button class="start-btn" id="startBtn" onclick="startSession()">START SESSION →</button>
@@ -630,7 +630,7 @@
       </div>
       <div class="bt-pill" id="polarPill" onclick="connectPolar()">
         <div class="bt-dot"></div>
-        <span>POLAR</span>
+        <span>HR</span>
       </div>
       <div class="bt-pill" id="smoothPill" onclick="toggleSmoothing()" title="Toggle power smoothing">
         <div class="bt-dot" style="background:#ffe000"></div>
@@ -944,9 +944,10 @@ async function connectPolar() {
   try {
     const device = await navigator.bluetooth.requestDevice({
       filters: [
-        { services: [HR_SERVICE], namePrefix: 'Polar' },
-        { services: [HR_SERVICE], namePrefix: 'polar' },
-      ]
+        { namePrefix: 'Polar' },
+        { namePrefix: 'IC' },
+      ],
+      optionalServices: [HR_SERVICE]
     });
     device.addEventListener('gattserverdisconnected', () => {
       polarConnected = false;
