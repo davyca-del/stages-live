@@ -503,7 +503,7 @@
     </button>
     <button class="connect-btn" id="polarBtn" onclick="connectPolar()">
       <span>♥ POLAR H10</span>
-      <span class="connect-btn-sub" id="polarSub">Heart Rate · optional</span>
+      <span class="connect-btn-sub" id="polarSub">Heart Rate · connect after Stages</span>
     </button>
   </div>
   <button class="start-btn" id="startBtn" onclick="startSession()">START SESSION →</button>
@@ -883,7 +883,7 @@ async function connectStages() {
   try {
     const device = await navigator.bluetooth.requestDevice({
       filters: [{ services: [CPS_SERVICE] }],
-      optionalServices: [CSC_SERVICE, CPS_CONTROL, HR_SERVICE]
+      optionalServices: [CSC_SERVICE, CPS_CONTROL]
     });
     device.addEventListener('gattserverdisconnected', () => {
       stagesConnected = false;
@@ -998,22 +998,28 @@ function onPowerData(e) {
   // - uint16 last crank event time in 1/1024s units (offset 6)
   // RPM is calculated from the delta between consecutive readings
   if (flags & 0x04) {
-    const revs = d.getUint16(4, true); // cumulative revs in 1/256 units
-    const time = d.getUint16(8, true); // crank event timestamp in 1/1024s units
+    const revs = d.getUint16(4, true);
+    const time = d.getUint16(8, true);
+    const now  = Date.now();
+
+    // If no crank movement for 3 real seconds, cadence is zero
+    if (lastCrankWallTime > 0 && (now - lastCrankWallTime) > 3000) {
+      liveCad = 0;
+      rawCadBuffer = [];
+    }
+
     if (cpsCrankRevs !== null) {
       const rd = (revs - cpsCrankRevs + 65536) % 65536;
-      const td = (time  - cpsCrankTime  + 65536) % 65536;
-      // Skip duplicate packets (SC3 sends each measurement twice)
+      const td = (time - cpsCrankTime  + 65536) % 65536;
       if (rd > 0 && td > 0) {
-        // rd is in 1/256 rev units, td is in 1/1024s units
         const rpm = Math.round((rd / 256) / (td / 1024) * 60);
         if (rpm > 0 && rpm < 250) {
-          liveCad = rpm;
-          log(`Cadence: ${rpm} rpm (rd=${rd} td=${td})`);
+          rawCadBuffer.push(rpm);
+          if (rawCadBuffer.length > CAD_SMOOTH) rawCadBuffer.shift();
+          liveCad = Math.round(rawCadBuffer.reduce((a,b) => a+b, 0) / rawCadBuffer.length);
+          lastCrankWallTime = now;
+          log(`Cadence: ${liveCad} rpm (raw=${rpm})`);
         }
-      } else if (td > 3072) {
-        // No movement for 3+ seconds
-        liveCad = 0;
       }
     }
     cpsCrankRevs = revs;
@@ -1023,9 +1029,12 @@ function onPowerData(e) {
   updateDisplay();
 }
 
+let rawCadBuffer = [];
+const CAD_SMOOTH  = 5;
+let   lastCrankWallTime = 0;
+
 let lastCrankRevs = null, lastCrankTime = null;
 function onCadenceData(e) {
-  const d = e.target.value;
   const flags = d.getUint8(0);
   const hasCrank = (flags & 0x02) !== 0;
   if (!hasCrank) return;
