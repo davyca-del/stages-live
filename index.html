@@ -43,11 +43,12 @@
   #app {
     position: relative;
     z-index: 1;
-    height: 100vh;
-    display: grid;
-    grid-template-rows: auto 1fr auto;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
     gap: 0;
-    padding: 6px 8px;
+    padding: 4px 6px;
+    overflow: hidden;
   }
 
   /* ── HEADER ── */
@@ -55,7 +56,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 2px;
+    padding: 2px 2px 4px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
     border-bottom: 1px solid var(--border);
     margin-bottom: 12px;
   }
@@ -139,51 +143,61 @@
 
   /* ── MAIN METRICS ── */
   .metrics {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr auto;
-    gap: 8px;
-    align-items: stretch;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 6px;
+    min-height: 0;
   }
 
   .metric-card.power-card {
-    grid-column: 1 / -1;
+    flex: 2;
+    min-height: 0;
   }
 
   .metrics-secondary {
-    display: contents;
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .metrics-secondary .metric-card {
+    flex: 1;
+    min-height: 0;
   }
 
   @media (min-width: 600px) {
     .metrics {
-      grid-template-columns: 2fr 1fr 1fr;
-      grid-template-rows: 1fr;
+      flex-direction: row;
     }
     .metric-card.power-card {
-      grid-column: 1;
-      grid-row: 1;
+      flex: 2;
+    }
+    .metrics-secondary {
+      flex: 1;
+      flex-direction: column;
     }
   }
 
   .metric-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 8px 4px;
+    padding: 4px;
     position: relative;
     overflow: hidden;
     transition: border-color 0.5s, box-shadow 0.5s;
+    min-height: 0;
   }
 
-  /* Primary power card */
   .metric-card.power-card {
-    padding: 10px;
-    justify-content: center;
-    align-items: center;
+    padding: 6px;
   }
 
   .metric-card::before {
@@ -197,16 +211,16 @@
   .metric-card.active::before { opacity: 1; }
 
   .metric-label {
-    font-size: 9px;
+    font-size: 8px;
     letter-spacing: 3px;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 2px;
+    flex-shrink: 0;
   }
 
   .metric-value {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(64px, 14vh, 20vh);
+    font-size: clamp(48px, 12vh, 17vh);
     line-height: 0.9;
     color: var(--text);
     transition: color 0.5s;
@@ -220,22 +234,21 @@
   }
 
   .metric-unit {
-    font-size: 11px;
+    font-size: 10px;
     letter-spacing: 2px;
     color: var(--muted);
-    margin-top: 2px;
+    flex-shrink: 0;
   }
 
-  /* Power card internals */
   .power-main {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
   }
 
   .power-value {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(120px, 35vw, 38vh);
+    font-size: clamp(100px, 40vh, 45vh);
     line-height: 0.85;
     letter-spacing: 2px;
     color: var(--zone-color);
@@ -244,10 +257,10 @@
   }
 
   .power-unit {
-    font-size: 12px;
+    font-size: 11px;
     letter-spacing: 3px;
     color: var(--muted);
-    margin-top: 2px;
+    flex-shrink: 0;
   }
 
   .zone-badge {
@@ -288,7 +301,8 @@
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 3px;
-    padding-top: 4px;
+    padding: 3px 0;
+    flex-shrink: 0;
   }
 
   .zone-bar-item {
@@ -439,40 +453,39 @@
     max-width: 480px;
   }
 
-  /* ── AVG / TREND ── */
   .trend-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 4px 0;
+    padding: 4px 2px 2px;
     border-top: 1px solid var(--border);
-    margin-top: 8px;
+    flex-shrink: 0;
   }
 
   .trend-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 0;
   }
 
   .trend-val {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 20px;
+    font-size: 18px;
     letter-spacing: 2px;
     color: var(--text);
   }
 
   .trend-lbl {
-    font-size: 8px;
-    letter-spacing: 2px;
+    font-size: 7px;
+    letter-spacing: 1px;
     text-transform: uppercase;
     color: var(--muted);
   }
 
   .elapsed {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 28px;
+    font-size: 22px;
     letter-spacing: 3px;
     color: var(--text);
   }
@@ -655,7 +668,7 @@
   </header>
 
   <!-- POWER CARD -->
-  <div class="metrics">
+  <div class="metrics" style="flex:1;min-height:0;">
     <div class="metric-card power-card" id="powerCard">
       <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;">
         <div class="metric-label">POWER</div>
