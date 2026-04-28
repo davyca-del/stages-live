@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>WORKOUT BUILDER</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #08080f; --surface: #0f0f1a; --surface2: #16161f;
+  --border: #1e1e2e; --text: #e8e8f0; --muted: #888;
+}
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; overflow: hidden; }
+
+#root { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ── NAV ── */
+nav {
+  display: flex; align-items: center; gap: 0;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+  background: var(--surface);
+}
+.nav-tab {
+  flex: 1; padding: 10px 4px; text-align: center;
+  font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 2px;
+  color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.nav-tab.active { color: var(--text); border-bottom-color: var(--text); }
+
+/* ── PANELS ── */
+.panel { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+.panel.active { display: flex; }
+.scroll { overflow-y: auto; flex: 1; padding: 10px; }
+
+/* ── ZONE PICKER ── */
+.zone-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 12px; }
+.zone-btn {
+  aspect-ratio: 1; border-radius: 8px; border: 2px solid transparent;
+  cursor: pointer; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; transition: all 0.15s; gap: 2px;
+}
+.zone-btn.selected { border-color: #fff; transform: scale(1.08); }
+.zone-btn span { font-family: 'Bebas Neue', sans-serif; font-size: 16px; color: #fff; }
+.zone-btn small { font-size: 7px; color: rgba(255,255,255,0.7); letter-spacing: 1px; }
+
+/* ── DURATION CONTROLS ── */
+.dur-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.dur-label { font-size: 10px; letter-spacing: 2px; color: var(--muted); width: 28px; }
+.dur-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-family: 'Bebas Neue', sans-serif; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.dur-val { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--text); min-width: 36px; text-align: center; flex-shrink: 0; }
+.dur-quick { display: flex; gap: 4px; flex-wrap: wrap; }
+.dur-quick button { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); font-family: 'DM Mono', monospace; font-size: 10px; cursor: pointer; }
+.dur-quick button:hover { color: var(--text); border-color: var(--text); }
+
+/* ── ADD BUTTON ── */
+.add-btn {
+  width: 100%; padding: 12px; border-radius: 8px; border: none;
+  font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 3px;
+  cursor: pointer; transition: all 0.2s; margin-bottom: 12px;
+  background: var(--surface2); color: var(--muted); border: 1px solid var(--border);
+}
+.add-btn.ready { color: var(--text); }
+
+/* ── BLOCK LIST ── */
+.block-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.block-item {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+  border-radius: 8px; border: 1px solid var(--border); background: var(--surface);
+}
+.block-swatch { width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0; }
+.block-info { flex: 1; }
+.block-name { font-family: 'Bebas Neue', sans-serif; font-size: 15px; letter-spacing: 2px; }
+.block-dur { font-size: 10px; color: var(--muted); }
+.block-btns { display: flex; gap: 4px; }
+.block-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.block-btn:hover { color: var(--text); border-color: var(--text); }
+.block-btn.del:hover { color: #ff4757; border-color: #ff4757; }
+
+/* ── TOTALS + SAVE ── */
+.workout-footer { padding: 10px; border-top: 1px solid var(--border); flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; }
+.total-row { display: flex; justify-content: space-between; align-items: center; }
+.total-label { font-size: 10px; letter-spacing: 2px; color: var(--muted); }
+.total-val { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--text); }
+.save-row { display: flex; gap: 8px; }
+.save-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; padding: 8px 10px; outline: none; }
+.save-input:focus { border-color: var(--text); }
+.save-btn { padding: 8px 16px; border-radius: 8px; border: none; background: #2ed573; color: #08080f; font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 2px; cursor: pointer; flex-shrink: 0; }
+.save-btn:disabled { opacity: 0.4; pointer-events: none; }
+
+/* ── SAVED WORKOUTS ── */
+.saved-item {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px; margin-bottom: 8px;
+}
+.saved-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.saved-name { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 3px; }
+.saved-meta { font-size: 10px; color: var(--muted); }
+.saved-preview { display: flex; gap: 2px; height: 12px; border-radius: 4px; overflow: hidden; margin-bottom: 10px; }
+.saved-seg { height: 100%; }
+.saved-btns { display: flex; gap: 6px; }
+.saved-btn { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 2px; cursor: pointer; text-align: center; }
+.saved-btn.load { border-color: #4a9eff; color: #4a9eff; }
+.saved-btn.ride { border-color: #2ed573; color: #2ed573; background: rgba(46,213,115,0.1); }
+.saved-btn.del { border-color: #ff4757; color: #ff4757; }
+.empty-msg { text-align: center; color: var(--muted); font-size: 11px; letter-spacing: 1px; padding: 32px; }
+
+/* ── WORKOUT PLAYER ── */
+#playerScreen {
+  display: none; position: fixed; inset: 0; background: var(--bg);
+  z-index: 100; flex-direction: column;
+}
+#playerScreen.active { display: flex; }
+
+.player-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.player-title { font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 3px; }
+.player-stop { padding: 6px 14px; border-radius: 6px; border: 1px solid #ff4757; color: #ff4757; background: none; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 1px; cursor: pointer; }
+
+.player-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 8px; gap: 8px; min-height: 0; }
+
+/* Timeline ribbon */
+.timeline { display: flex; gap: 2px; height: 28px; border-radius: 6px; overflow: hidden; flex-shrink: 0; }
+.tl-seg { height: 100%; position: relative; transition: opacity 0.3s; min-width: 4px; }
+.tl-seg.done { opacity: 0.25; }
+.tl-seg.current { outline: 2px solid #fff; outline-offset: -2px; }
+.tl-progress { position: absolute; top: 0; left: 0; height: 100%; background: rgba(0,0,0,0.4); transition: width 1s linear; }
+
+/* Current block */
+.current-block {
+  flex: 2; border-radius: 14px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; position: relative; overflow: hidden;
+  min-height: 0;
+}
+.cb-label { font-size: 9px; letter-spacing: 3px; color: rgba(255,255,255,0.7); }
+.cb-zone { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 4px; color: #fff; }
+.cb-timer { font-family: 'Bebas Neue', sans-serif; font-size: clamp(80px, 25vh, 30vh); line-height: 0.85; color: #fff; letter-spacing: 4px; }
+.cb-timer-label { font-size: 10px; letter-spacing: 3px; color: rgba(255,255,255,0.7); }
+.cb-pulse { position: absolute; inset: 0; border: 4px solid rgba(255,255,255,0.6); border-radius: 14px; animation: pulse-ring 1s infinite; pointer-events: none; display: none; }
+@keyframes pulse-ring { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* Off-target indicator */
+.off-target { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); padding: 4px 12px; border-radius: 20px; background: rgba(0,0,0,0.5); font-size: 9px; letter-spacing: 2px; color: #fff; white-space: nowrap; }
+
+/* Next block */
+.next-block {
+  flex: 1; border-radius: 10px; display: flex; align-items: center;
+  padding: 10px 16px; gap: 14px; opacity: 0.75; min-height: 0;
+  background: var(--surface); border: 1px solid var(--border);
+}
+.nb-swatch { width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0; }
+.nb-info { flex: 1; }
+.nb-label { font-size: 9px; letter-spacing: 2px; color: var(--muted); }
+.nb-zone { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 3px; }
+.nb-dur { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+
+/* Live metrics strip */
+.live-strip { display: flex; gap: 6px; flex-shrink: 0; }
+.ls-card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px; text-align: center; }
+.ls-label { font-size: 8px; letter-spacing: 2px; color: var(--muted); }
+.ls-val { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; }
+.ls-unit { font-size: 9px; color: var(--muted); }
+
+/* Finish screen */
+#finishScreen { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 110; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 24px; }
+#finishScreen.active { display: flex; }
+</style>
+</head>
+<body>
+
+<div id="root">
+  <nav>
+    <div class="nav-tab active" onclick="showTab('builder')" id="tab-builder">BUILD</div>
+    <div class="nav-tab" onclick="showTab('saved')" id="tab-saved">SAVED</div>
+    <div class="nav-tab" onclick="window.location.href='stages-live.html'" id="tab-ride">← RIDE</div>
+  </nav>
+
+  <!-- ── BUILDER TAB ── -->
+  <div class="panel active" id="panel-builder">
+    <div class="scroll">
+      <div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:8px;">SELECT ZONE</div>
+      <div class="zone-grid" id="zonePicker"></div>
+
+      <div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:8px;">DURATION</div>
+      <div class="dur-row">
+        <span class="dur-label">MIN</span>
+        <button class="dur-btn" onclick="adj('m',-1)">−</button>
+        <span class="dur-val" id="durMin">0</span>
+        <button class="dur-btn" onclick="adj('m',1)">+</button>
+      </div>
+      <div class="dur-row">
+        <span class="dur-label">SEC</span>
+        <button class="dur-btn" onclick="adj('s',-15)">−</button>
+        <span class="dur-val" id="durSec">30</span>
+        <button class="dur-btn" onclick="adj('s',15)">+</button>
+      </div>
+      <div class="dur-quick">
+        <button onclick="setDur(0,30)">30s</button>
+        <button onclick="setDur(1,0)">1m</button>
+        <button onclick="setDur(2,0)">2m</button>
+        <button onclick="setDur(3,0)">3m</button>
+        <button onclick="setDur(5,0)">5m</button>
+        <button onclick="setDur(10,0)">10m</button>
+        <button onclick="setDur(20,0)">20m</button>
+      </div>
+
+      <div style="height:12px;"></div>
+      <button class="add-btn" id="addBtn" onclick="addBlock()">+ ADD BLOCK</button>
+
+      <div style="font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:6px;" id="blockCountLabel">NO BLOCKS YET</div>
+      <div class="block-list" id="blockList"></div>
+    </div>
+
+    <div class="workout-footer">
+      <div class="total-row">
+        <span class="total-label">TOTAL DURATION</span>
+        <span class="total-val" id="totalDur">0:00</span>
+        <span class="total-label">BLOCKS</span>
+        <span class="total-val" id="totalBlocks">0</span>
+      </div>
+      <div class="save-row">
+        <input class="save-input" id="workoutName" placeholder="Workout name…" maxlength="40">
+        <button class="save-btn" id="saveBtn" onclick="saveWorkout()" disabled>SAVE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SAVED TAB ── -->
+  <div class="panel" id="panel-saved">
+    <div class="scroll" id="savedList"></div>
+  </div>
+</div>
+
+<!-- ── WORKOUT PLAYER ── -->
+<div id="playerScreen">
+  <div class="player-header">
+    <div class="player-title" id="playerTitle">WORKOUT</div>
+    <button class="player-stop" onclick="stopWorkout()">■ STOP</button>
+  </div>
+  <div class="player-body">
+    <div class="timeline" id="timeline"></div>
+    <div class="current-block" id="currentBlock">
+      <div class="cb-label">CURRENT BLOCK</div>
+      <div class="cb-zone" id="cbZone">–</div>
+      <div class="cb-timer" id="cbTimer">0:00</div>
+      <div class="cb-timer-label">REMAINING</div>
+      <div class="off-target" id="offTarget" style="display:none;"></div>
+      <div class="cb-pulse" id="cbPulse"></div>
+    </div>
+    <div class="next-block" id="nextBlock">
+      <div class="nb-swatch" id="nbSwatch"></div>
+      <div class="nb-info">
+        <div class="nb-label">NEXT</div>
+        <div class="nb-zone" id="nbZone">–</div>
+        <div class="nb-dur" id="nbDur">–</div>
+      </div>
+    </div>
+    <div class="live-strip">
+      <div class="ls-card">
+        <div class="ls-label">POWER</div>
+        <div class="ls-val" id="lsPower" style="color:var(--text)">––</div>
+        <div class="ls-unit">W</div>
+      </div>
+      <div class="ls-card">
+        <div class="ls-label">CADENCE</div>
+        <div class="ls-val" id="lsCad" style="color:var(--text)">––</div>
+        <div class="ls-unit">RPM</div>
+      </div>
+      <div class="ls-card">
+        <div class="ls-label">HEART RATE</div>
+        <div class="ls-val" id="lsHR" style="color:var(--text)">––</div>
+        <div class="ls-unit">BPM</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── FINISH SCREEN ── -->
+<div id="finishScreen">
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:6px;color:#2ed573;">WORKOUT COMPLETE</div>
+  <div style="font-size:11px;color:var(--muted);letter-spacing:2px;" id="finishSummary"></div>
+  <button onclick="closeFinish()" style="padding:14px 32px;border-radius:10px;border:none;background:#2ed573;color:#08080f;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;cursor:pointer;">DONE</button>
+</div>
+
+<script>
+// ── ZONES ─────────────────────────────────────────────────────────────────
+const ZONES = [
+  { num:1, name:'Active Recovery', short:'Recovery',  color:'#4a9eff' },
+  { num:2, name:'Endurance',       short:'Endurance', color:'#2ed573' },
+  { num:3, name:'Tempo',           short:'Tempo',     color:'#ffe000' },
+  { num:4, name:'Threshold',       short:'Threshold', color:'#ffa502' },
+  { num:5, name:'VO2 Max',         short:'VO2 Max',   color:'#ff4757' },
+  { num:6, name:'Anaerobic',       short:'Anaerobic', color:'#8b1a1a' },
+  { num:7, name:'Neuromuscular',   short:'Neuro',     color:'#a55eea' },
+];
+
+const STORE_KEY = 'stages_workouts_v1';
+const LIVE_KEY  = 'stages_live_workout';
+
+// ── BUILDER STATE ──────────────────────────────────────────────────────────
+let selectedZone = null;
+let durMin = 0, durSec = 30;
+let blocks = [];
+
+// ── RENDER ZONE PICKER ─────────────────────────────────────────────────────
+function renderZonePicker() {
+  document.getElementById('zonePicker').innerHTML = ZONES.map(z => `
+    <div class="zone-btn${selectedZone===z.num?' selected':''}"
+      style="background:${z.color};"
+      onclick="selectZone(${z.num})">
+      <span>Z${z.num}</span>
+      <small>${z.short.toUpperCase()}</small>
+    </div>`).join('');
+}
+
+function selectZone(num) {
+  selectedZone = num;
+  renderZonePicker();
+  updateAddBtn();
+}
+
+// ── DURATION ───────────────────────────────────────────────────────────────
+function adj(type, delta) {
+  if (type === 'm') {
+    durMin = Math.max(0, Math.min(60, durMin + delta));
+    if (durMin === 0 && durSec === 0) durSec = 15;
+  } else {
+    durSec = (durSec + delta + 60) % 60;
+    if (durMin === 0 && durSec === 0) durSec = 15;
+  }
+  document.getElementById('durMin').textContent = durMin;
+  document.getElementById('durSec').textContent = String(durSec).padStart(2,'0');
+  updateAddBtn();
+}
+
+function setDur(m, s) {
+  durMin = m; durSec = s;
+  document.getElementById('durMin').textContent = durMin;
+  document.getElementById('durSec').textContent = String(durSec).padStart(2,'0');
+  updateAddBtn();
+}
+
+function totalSecs() { return durMin * 60 + durSec; }
+
+function updateAddBtn() {
+  const btn = document.getElementById('addBtn');
+  const ready = selectedZone !== null && totalSecs() > 0;
+  btn.classList.toggle('ready', ready);
+  const z = ZONES.find(z => z.num === selectedZone);
+  btn.textContent = ready
+    ? `+ ADD Z${selectedZone} · ${z.short} · ${durMin}:${String(durSec).padStart(2,'0')}`
+    : '+ ADD BLOCK';
+  if (ready) btn.style.borderColor = z.color;
+  else btn.style.borderColor = 'var(--border)';
+}
+
+// ── BLOCK LIST ─────────────────────────────────────────────────────────────
+function addBlock() {
+  if (!selectedZone || totalSecs() === 0) return;
+  const z = ZONES.find(z => z.num === selectedZone);
+  blocks.push({ zone: z.num, secs: totalSecs() });
+  renderBlocks();
+  updateFooter();
+}
+
+function removeBlock(i) {
+  blocks.splice(i, 1);
+  renderBlocks();
+  updateFooter();
+}
+
+function moveBlock(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= blocks.length) return;
+  [blocks[i], blocks[j]] = [blocks[j], blocks[i]];
+  renderBlocks();
+}
+
+function renderBlocks() {
+  const list = document.getElementById('blockList');
+  const label = document.getElementById('blockCountLabel');
+  if (!blocks.length) {
+    list.innerHTML = '';
+    label.textContent = 'NO BLOCKS YET';
+    return;
+  }
+  label.textContent = `${blocks.length} BLOCK${blocks.length > 1 ? 'S' : ''}`;
+  list.innerHTML = blocks.map((b, i) => {
+    const z = ZONES.find(z => z.num === b.zone);
+    return `<div class="block-item">
+      <div class="block-swatch" style="background:${z.color}"></div>
+      <div class="block-info">
+        <div class="block-name" style="color:${z.color}">Z${z.num} · ${z.short}</div>
+        <div class="block-dur">${fmtSecs(b.secs)}</div>
+      </div>
+      <div class="block-btns">
+        <button class="block-btn" onclick="moveBlock(${i},-1)">↑</button>
+        <button class="block-btn" onclick="moveBlock(${i},1)">↓</button>
+        <button class="block-btn del" onclick="removeBlock(${i})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateFooter() {
+  const total = blocks.reduce((s, b) => s + b.secs, 0);
+  document.getElementById('totalDur').textContent = fmtSecs(total);
+  document.getElementById('totalBlocks').textContent = blocks.length;
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = blocks.length === 0;
+}
+
+// ── SAVE / LOAD ────────────────────────────────────────────────────────────
+function saveWorkout() {
+  const name = document.getElementById('workoutName').value.trim();
+  if (!name || !blocks.length) return;
+  const workouts = loadWorkouts();
+  workouts.push({ id: Date.now(), name, blocks: [...blocks], created: new Date().toLocaleDateString() });
+  localStorage.setItem(STORE_KEY, JSON.stringify(workouts));
+  document.getElementById('workoutName').value = '';
+  blocks = [];
+  renderBlocks();
+  updateFooter();
+  showTab('saved');
+}
+
+function loadWorkouts() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch { return []; }
+}
+
+function deleteWorkout(id) {
+  if (!confirm('Delete this workout?')) return;
+  const workouts = loadWorkouts().filter(w => w.id !== id);
+  localStorage.setItem(STORE_KEY, JSON.stringify(workouts));
+  renderSaved();
+}
+
+function loadIntoBuilder(id) {
+  const w = loadWorkouts().find(w => w.id === id);
+  if (!w) return;
+  blocks = [...w.blocks];
+  document.getElementById('workoutName').value = w.name;
+  renderBlocks();
+  updateFooter();
+  showTab('builder');
+}
+
+function renderSaved() {
+  const workouts = loadWorkouts();
+  const list = document.getElementById('savedList');
+  if (!workouts.length) {
+    list.innerHTML = '<div class="empty-msg">NO SAVED WORKOUTS YET<br><br>Build one in the BUILD tab</div>';
+    return;
+  }
+  list.innerHTML = workouts.map(w => {
+    const total = w.blocks.reduce((s, b) => s + b.secs, 0);
+    const segs = w.blocks.map(b => {
+      const z = ZONES.find(z => z.num === b.zone);
+      const pct = (b.secs / total * 100).toFixed(1);
+      return `<div class="saved-seg" style="background:${z.color};width:${pct}%"></div>`;
+    }).join('');
+    return `<div class="saved-item">
+      <div class="saved-header">
+        <div class="saved-name">${w.name}</div>
+        <div class="saved-meta">${w.blocks.length} blocks · ${fmtSecs(total)}</div>
+      </div>
+      <div class="saved-preview">${segs}</div>
+      <div class="saved-btns">
+        <div class="saved-btn load" onclick="loadIntoBuilder(${w.id})">EDIT</div>
+        <div class="saved-btn ride" onclick="rideWorkout(${w.id})">▶ RIDE</div>
+        <div class="saved-btn del" onclick="deleteWorkout(${w.id})">DELETE</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── TABS ───────────────────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'saved') renderSaved();
+}
+
+// ── WORKOUT PLAYER ─────────────────────────────────────────────────────────
+let playerWorkout = null;
+let playerBlockIdx = 0;
+let playerSecsLeft = 0;
+let playerInterval = null;
+let playerStartTime = 0;
+
+// Live data from stages-live via localStorage bridge
+let livePower = 0, liveCad = 0, liveHR = 0;
+
+function rideWorkout(id) {
+  const w = loadWorkouts().find(w => w.id === id);
+  if (!w || !w.blocks.length) return;
+  playerWorkout = w;
+  playerBlockIdx = 0;
+  playerSecsLeft = w.blocks[0].secs;
+  playerStartTime = Date.now();
+
+  document.getElementById('playerTitle').textContent = w.name.toUpperCase();
+  document.getElementById('playerScreen').classList.add('active');
+
+  buildTimeline();
+  renderPlayerBlock();
+  playerInterval = setInterval(playerTick, 1000);
+  // Poll live data
+  setInterval(pollLive, 500);
+}
+
+function buildTimeline() {
+  const total = playerWorkout.blocks.reduce((s, b) => s + b.secs, 0);
+  document.getElementById('timeline').innerHTML = playerWorkout.blocks.map((b, i) => {
+    const z = ZONES.find(z => z.num === b.zone);
+    const pct = (b.secs / total * 100).toFixed(1);
+    return `<div class="tl-seg" id="tl${i}" style="background:${z.color};width:${pct}%">
+      <div class="tl-progress" id="tlp${i}" style="width:0%"></div>
+    </div>`;
+  }).join('');
+}
+
+function playerTick() {
+  playerSecsLeft--;
+
+  // Update current block timer
+  document.getElementById('cbTimer').textContent = fmtSecs(playerSecsLeft);
+
+  // Update timeline progress bar for current block
+  const block = playerWorkout.blocks[playerBlockIdx];
+  const elapsed = block.secs - playerSecsLeft;
+  const pct = (elapsed / block.secs * 100).toFixed(1);
+  const tlp = document.getElementById(`tlp${playerBlockIdx}`);
+  if (tlp) tlp.style.width = pct + '%';
+
+  // Check off-target
+  updateOffTarget();
+
+  if (playerSecsLeft <= 0) {
+    // Mark block done
+    document.getElementById(`tl${playerBlockIdx}`)?.classList.add('done');
+    playerBlockIdx++;
+
+    if (playerBlockIdx >= playerWorkout.blocks.length) {
+      // Workout complete
+      finishWorkout();
+      return;
+    }
+
+    // Beep
+    beep();
+    playerSecsLeft = playerWorkout.blocks[playerBlockIdx].secs;
+    renderPlayerBlock();
+  }
+}
+
+function renderPlayerBlock() {
+  const block = playerWorkout.blocks[playerBlockIdx];
+  const z = ZONES.find(z => z.num === block.zone);
+  const next = playerWorkout.blocks[playerBlockIdx + 1];
+
+  // Current block
+  const cb = document.getElementById('currentBlock');
+  cb.style.background = z.color;
+  cb.style.border = `1px solid ${z.color}`;
+  document.getElementById('cbZone').textContent = `Z${z.num} · ${z.name.toUpperCase()}`;
+  document.getElementById('cbTimer').textContent = fmtSecs(playerSecsLeft);
+
+  // Next block
+  if (next) {
+    const nz = ZONES.find(z => z.num === next.zone);
+    document.getElementById('nbSwatch').style.background = nz.color;
+    document.getElementById('nbZone').textContent = `Z${nz.num} · ${nz.name}`;
+    document.getElementById('nbDur').textContent = fmtSecs(next.secs);
+    document.getElementById('nextBlock').style.display = 'flex';
+  } else {
+    document.getElementById('nextBlock').style.display = 'none';
+  }
+
+  // Mark current in timeline
+  playerWorkout.blocks.forEach((_, i) => {
+    document.getElementById(`tl${i}`)?.classList.toggle('current', i === playerBlockIdx);
+  });
+}
+
+function updateOffTarget() {
+  // This will be populated when live data is available
+  const block = playerWorkout.blocks[playerBlockIdx];
+  const targetZ = block.zone;
+  // We'll get actualZ from livePower when the session page bridges data
+  const otEl = document.getElementById('offTarget');
+  const pulse = document.getElementById('cbPulse');
+  // For now hide — real data comes via postMessage or localStorage bridge
+  otEl.style.display = 'none';
+  pulse.style.display = 'none';
+}
+
+function pollLive() {
+  try {
+    const data = JSON.parse(localStorage.getItem(LIVE_KEY) || '{}');
+    livePower = data.power || 0;
+    liveCad   = data.cad   || 0;
+    liveHR    = data.hr    || 0;
+    document.getElementById('lsPower').textContent = livePower || '––';
+    document.getElementById('lsCad').textContent   = liveCad   || '––';
+    document.getElementById('lsHR').textContent    = liveHR    || '––';
+  } catch {}
+}
+
+function finishWorkout() {
+  clearInterval(playerInterval);
+  document.getElementById('playerScreen').classList.remove('active');
+  const total = playerWorkout.blocks.reduce((s, b) => s + b.secs, 0);
+  document.getElementById('finishSummary').textContent =
+    `${playerWorkout.name} · ${playerWorkout.blocks.length} blocks · ${fmtSecs(total)}`;
+  document.getElementById('finishScreen').classList.add('active');
+}
+
+function stopWorkout() {
+  if (!confirm('Stop the workout?')) return;
+  clearInterval(playerInterval);
+  document.getElementById('playerScreen').classList.remove('active');
+}
+
+function closeFinish() {
+  document.getElementById('finishScreen').classList.remove('active');
+}
+
+// ── AUDIO BEEP ─────────────────────────────────────────────────────────────
+function beep() {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(); osc.stop(ctx.currentTime + 0.4);
+  } catch {}
+}
+
+// ── UTILS ──────────────────────────────────────────────────────────────────
+function fmtSecs(s) {
+  const m = Math.floor(s / 60);
+  const ss = s % 60;
+  return `${m}:${String(ss).padStart(2,'0')}`;
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+renderZonePicker();
+updateAddBtn();
+document.getElementById('workoutName').addEventListener('input', function() {
+  document.getElementById('saveBtn').disabled = !this.value.trim() || !blocks.length;
+});
+</script>
+</body>
+</html>

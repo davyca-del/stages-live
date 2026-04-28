@@ -531,6 +531,7 @@
     </button>
   </div>
   <button class="start-btn" id="startBtn" onclick="startSession()">START SESSION →</button>
+  <a href="stages-workout.html" style="width:100%;max-width:480px;display:block;text-align:center;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-decoration:none;margin-top:6px;">⚙ WORKOUT BUILDER</a>
 
   <div style="width:100%;max-width:480px;margin-top:6px;">
     <div style="font-size:9px;letter-spacing:2px;color:var(--muted);text-align:center;margin-bottom:8px;">── OR ──</div>
@@ -792,6 +793,12 @@ function renderZoneBars() {
 let lastZoneNum = null;
 
 function updateDisplay() {
+  // Bridge live data to workout player
+  try {
+    localStorage.setItem('stages_live_workout', JSON.stringify({
+      power: livePower, cad: liveCad, hr: liveHR, ts: Date.now()
+    }));
+  } catch {}
   ftp = getFTP();
   const z = zoneForPower(livePower);
 
