@@ -46,8 +46,8 @@
     height: 100dvh;
     display: flex;
     flex-direction: column;
-    gap: 0;
-    padding: 4px 6px;
+    padding: 4px 6px 2px;
+    gap: 3px;
     overflow: hidden;
   }
 
@@ -56,12 +56,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 2px 2px 4px;
+    padding: 2px 0;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
-  }
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 12px;
   }
 
   .logo {
@@ -141,87 +138,72 @@
 
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-  /* ── MAIN METRICS ── */
+  /* ── METRICS LAYOUT ── */
   .metrics {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    flex: 1;
-    gap: 6px;
+    gap: 3px;
     min-height: 0;
   }
 
-  .metric-card.power-card {
-    flex: 2;
-    min-height: 0;
-  }
+  .metric-card.power-card { flex: 3; min-height: 0; }
 
   .metrics-secondary {
+    flex: 1;
     display: flex;
     flex-direction: row;
-    gap: 6px;
-    flex: 1;
+    gap: 3px;
     min-height: 0;
   }
 
-  .metrics-secondary .metric-card {
-    flex: 1;
-    min-height: 0;
-  }
+  .metrics-secondary .metric-card { flex: 1; min-height: 0; }
 
   @media (min-width: 600px) {
-    .metrics {
-      flex-direction: row;
-    }
-    .metric-card.power-card {
-      flex: 2;
-    }
-    .metrics-secondary {
-      flex: 1;
-      flex-direction: column;
-    }
+    .metrics { flex-direction: row; }
+    .metric-card.power-card { flex: 2; }
+    .metrics-secondary { flex: 1; flex-direction: column; }
   }
 
   .metric-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 4px;
+    padding: 2px 4px;
     position: relative;
     overflow: hidden;
-    transition: border-color 0.5s, box-shadow 0.5s;
+    transition: border-color 0.5s;
     min-height: 0;
-  }
-
-  .metric-card.power-card {
-    padding: 6px;
   }
 
   .metric-card::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: var(--zone-dim);
+    background: color-mix(in srgb, var(--zone-color) 10%, transparent);
     opacity: 0;
     transition: opacity 0.5s;
+    pointer-events: none;
   }
   .metric-card.active::before { opacity: 1; }
 
   .metric-label {
-    font-size: 8px;
-    letter-spacing: 3px;
+    font-size: 7px;
+    letter-spacing: 2px;
     text-transform: uppercase;
     color: var(--muted);
     flex-shrink: 0;
+    line-height: 1.2;
   }
 
   .metric-value {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(48px, 12vh, 17vh);
-    line-height: 0.9;
+    font-size: clamp(48px, 15vw, 120px);
+    line-height: 0.88;
     color: var(--text);
     transition: color 0.5s;
     letter-spacing: 2px;
@@ -229,71 +211,34 @@
 
   .metric-value.live {
     color: var(--zone-color);
-    text-shadow: 0 0 40px color-mix(in srgb, var(--zone-color) 50%, transparent);
+    text-shadow: 0 0 30px color-mix(in srgb, var(--zone-color) 50%, transparent);
     transition: color 0.5s, text-shadow 0.5s;
   }
 
   .metric-unit {
-    font-size: 10px;
+    font-size: 8px;
     letter-spacing: 2px;
     color: var(--muted);
     flex-shrink: 0;
-  }
-
-  .power-main {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    line-height: 1.2;
   }
 
   .power-value {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(100px, 40vh, 45vh);
+    font-size: clamp(80px, 38vw, 240px);
     line-height: 0.85;
     letter-spacing: 2px;
     color: var(--zone-color);
-    text-shadow: 0 0 60px color-mix(in srgb, var(--zone-color) 40%, transparent);
+    text-shadow: 0 0 50px color-mix(in srgb, var(--zone-color) 35%, transparent);
     transition: color 0.5s, text-shadow 0.5s;
   }
 
   .power-unit {
-    font-size: 11px;
+    font-size: 9px;
     letter-spacing: 3px;
     color: var(--muted);
     flex-shrink: 0;
-  }
-
-  .zone-badge {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-  }
-
-  .zone-num-big {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(60px, 14vw, 110px);
-    line-height: 0.85;
-    color: var(--zone-color);
-    opacity: 0.25;
-    letter-spacing: 2px;
-    transition: color 0.5s;
-  }
-
-  .zone-name-big {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(16px, 3.5vw, 26px);
-    letter-spacing: 4px;
-    color: var(--zone-color);
-    text-align: right;
-    transition: color 0.5s;
-  }
-
-  .pct-ftp {
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--muted);
-    text-align: right;
+    line-height: 1.2;
   }
 
   /* ── ZONE BARS ── */
@@ -490,10 +435,6 @@
     color: var(--text);
   }
 
-  @media (max-width: 600px) {
-    .power-value { font-size: 90px; }
-    .metric-value { font-size: 44px; }
-  }
 </style>
 </head>
 <body>
@@ -669,13 +610,13 @@
   </header>
 
   <!-- POWER CARD -->
-  <div class="metrics" style="flex:1;min-height:0;">
+  <div class="metrics">
     <div class="metric-card power-card" id="powerCard">
       <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;">
         <div class="metric-label">POWER</div>
         <div class="power-value" id="powerVal">––</div>
         <div class="power-unit">WATTS</div>
-        <div id="pctFTPBadge" style="margin-top:10px;font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--zone-color);opacity:0.85;transition:color 0.5s;">–% <span style="font-size:16px;letter-spacing:2px;opacity:0.6;">FTP</span></div>
+        <div id="pctFTPBadge" style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--zone-color);opacity:0.85;transition:color 0.5s;line-height:1;">–% <span style="font-size:11px;letter-spacing:2px;opacity:0.6;">FTP</span></div>
       </div>
     </div>
 
