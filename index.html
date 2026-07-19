@@ -299,6 +299,95 @@
     text-align: center;
   }
 
+  /* ── WORKOUT PLAYER ── */
+  #workoutMode {
+    flex: 1;
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 0;
+  }
+  .wk-timeline {
+    display: flex;
+    gap: 2px;
+    height: 18px;
+    border-radius: 5px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .wk-seg {
+    height: 100%;
+    position: relative;
+    min-width: 3px;
+    transition: opacity 0.4s;
+  }
+  .wk-seg.done { opacity: 0.2; }
+  .wk-seg.current { outline: 2px solid rgba(255,255,255,0.85); outline-offset: -2px; }
+  .wk-seg-prog {
+    position: absolute;
+    top: 0; left: 0; height: 100%;
+    background: rgba(0,0,0,0.35);
+    transition: width 1s linear;
+  }
+  .wk-current {
+    flex: 1;
+    min-height: 0;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .wk-cur-label  { font-size: 8px; letter-spacing: 3px; color: rgba(255,255,255,0.65); flex-shrink: 0; }
+  .wk-zone-name  { font-family: 'Bebas Neue', sans-serif; font-size: clamp(14px,4vw,22px); letter-spacing: 4px; color: #fff; flex-shrink: 0; }
+  .wk-timer      { font-family: 'Bebas Neue', sans-serif; font-size: clamp(60px,22vh,28vh); line-height: 0.85; color: #fff; letter-spacing: 4px; }
+  .wk-timer-unit { font-size: 8px; letter-spacing: 3px; color: rgba(255,255,255,0.65); flex-shrink: 0; }
+  .wk-off-target {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    padding: 3px 12px; border-radius: 20px; background: rgba(0,0,0,0.5);
+    font-size: 9px; letter-spacing: 2px; color: #fff; white-space: nowrap; display: none;
+  }
+  .wk-pulse-ring {
+    position: absolute; inset: 0; border: 3px solid rgba(255,255,255,0.55);
+    border-radius: 10px; animation: wkpulse 1s ease-in-out infinite;
+    pointer-events: none; display: none;
+  }
+  @keyframes wkpulse { 0%,100%{opacity:0.8} 50%{opacity:0.1} }
+  .wk-next {
+    flex-shrink: 0; display: none; align-items: center; gap: 10px;
+    padding: 7px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  }
+  .wk-next-swatch { width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0; }
+  .wk-next-lbl  { font-size: 7px; letter-spacing: 2px; color: var(--muted); }
+  .wk-next-zone { font-family: 'Bebas Neue', sans-serif; font-size: 17px; letter-spacing: 2px; }
+  .wk-next-dur  { font-size: 9px; color: var(--muted); }
+  .wk-live-strip { display: flex; gap: 4px; flex-shrink: 0; }
+  .wk-live-card {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 4px; display: flex; flex-direction: column;
+    align-items: center; gap: 1px;
+  }
+  .wk-live-lbl  { font-size: 7px; letter-spacing: 2px; color: var(--muted); }
+  .wk-live-val  { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 2px; color: var(--text); }
+  .wk-live-unit { font-size: 7px; color: var(--muted); }
+  /* Workout picker in overlay */
+  .wk-pick-item {
+    display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+    border-radius: 8px; border: 1px solid var(--border); background: var(--surface);
+    cursor: pointer; transition: border-color 0.2s;
+  }
+  .wk-pick-item.selected { background: var(--surface2); }
+  .wk-pick-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .wk-pick-name { font-family: 'Bebas Neue', sans-serif; font-size: 15px; letter-spacing: 2px; flex: 1; }
+  .wk-pick-dur  { font-size: 9px; color: var(--muted); letter-spacing: 1px; }
+  .wk-stop-btn {
+    display: none; padding: 2px 8px; border-radius: 5px;
+    border: 1px solid #ff4757; color: #ff4757; background: none;
+    font-family: 'DM Mono', monospace; font-size: 9px; cursor: pointer;
+  }
+
   /* ── DISCONNECTED OVERLAY ── */
   #overlay {
     position: fixed;
@@ -471,7 +560,12 @@
       <span class="connect-btn-sub" id="polarSub">Polar or IC1000 · optional</span>
     </button>
   </div>
-  <button class="start-btn" id="startBtn" onclick="startSession()">START SESSION →</button>
+  <!-- Workout picker — populated when Stages connects -->
+  <div id="workoutPicker" style="display:none;flex-direction:column;gap:5px;width:100%;max-width:480px;">
+    <div style="font-size:8px;letter-spacing:2px;color:var(--muted);text-align:center;">SELECT WORKOUT OR FREE RIDE</div>
+    <div id="workoutList" style="display:flex;flex-direction:column;gap:3px;max-height:200px;overflow-y:auto;"></div>
+  </div>
+  <button class="start-btn" id="startBtn" onclick="startSession()">START FREE RIDE →</button>
   <a href="stages-workout.html" style="width:100%;max-width:480px;display:block;text-align:center;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-decoration:none;margin-top:6px;">⚙ WORKOUT BUILDER</a>
 
   <div style="width:100%;max-width:480px;margin-top:6px;">
@@ -606,6 +700,7 @@
         <div class="bt-dot" style="background:#ffe000"></div>
         <span id="smoothLabel">10S AVG</span>
       </div>
+      <button class="wk-stop-btn" id="wkStopBtn" onclick="stopWorkout()">■ STOP</button>
     </div>
   </header>
 
@@ -631,6 +726,44 @@
         <div class="metric-label">HEART RATE</div>
         <div class="metric-value live" id="hrVal">––</div>
         <div class="metric-unit">BPM</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── WORKOUT PLAYER (replaces metrics when a workout is active) ── -->
+  <div id="workoutMode">
+    <div class="wk-timeline" id="wkTimeline"></div>
+    <div class="wk-current" id="wkCurrent">
+      <div class="wk-cur-label">CURRENT BLOCK</div>
+      <div class="wk-zone-name" id="wkZoneName">––</div>
+      <div class="wk-timer" id="wkTimer">0:00</div>
+      <div class="wk-timer-unit">REMAINING</div>
+      <div class="wk-off-target" id="wkOffTarget"></div>
+      <div class="wk-pulse-ring" id="wkPulse"></div>
+    </div>
+    <div class="wk-next" id="wkNext">
+      <div class="wk-next-swatch" id="wkNextSwatch"></div>
+      <div>
+        <div class="wk-next-lbl">NEXT</div>
+        <div class="wk-next-zone" id="wkNextZone"></div>
+        <div class="wk-next-dur" id="wkNextDur"></div>
+      </div>
+    </div>
+    <div class="wk-live-strip">
+      <div class="wk-live-card">
+        <div class="wk-live-lbl">POWER</div>
+        <div class="wk-live-val" id="wkLivePower">––</div>
+        <div class="wk-live-unit">W</div>
+      </div>
+      <div class="wk-live-card">
+        <div class="wk-live-lbl">CADENCE</div>
+        <div class="wk-live-val" id="wkLiveCad">––</div>
+        <div class="wk-live-unit">RPM</div>
+      </div>
+      <div class="wk-live-card">
+        <div class="wk-live-lbl">HEART RATE</div>
+        <div class="wk-live-val" id="wkLiveHR">––</div>
+        <div class="wk-live-unit">BPM</div>
       </div>
     </div>
   </div>
@@ -734,12 +867,19 @@ function renderZoneBars() {
 let lastZoneNum = null;
 
 function updateDisplay() {
-  // Bridge live data to workout player
+  // Bridge live data to workout player / localStorage
   try {
     localStorage.setItem('stages_live_workout', JSON.stringify({
       power: livePower, cad: liveCad, hr: liveHR, ts: Date.now()
     }));
   } catch {}
+
+  // In workout mode just update the live strip — zone colour is driven by target block
+  if (activeWorkout) {
+    wkUpdateLive();
+    return;
+  }
+
   ftp = getFTP();
   const z = zoneForPower(livePower);
 
@@ -842,6 +982,7 @@ function setConnectBtn(id, subId, state, subText) {
 function checkStartReady() {
   const ready = stagesConnected;
   document.getElementById('startBtn').classList.toggle('ready', ready);
+  if (ready) renderWorkoutPicker();
   // Enable/disable FTP test buttons
   ['ftpBtn5','ftpBtn10','ftpBtn20'].forEach(id => {
     const btn = document.getElementById(id);
@@ -1233,6 +1374,63 @@ function formatTime(seconds) {
 }
 
 // ── SESSION START ──────────────────────────────────────────────────────────
+// ── WORKOUT INTEGRATION ────────────────────────────────────────────────────
+const WK_STORE = 'stages_workouts_v1';
+let selectedWorkoutId = null;
+let activeWorkout     = null;
+let wkBlockIdx        = 0;
+let wkSecsLeft        = 0;
+let wkInterval        = null;
+
+function loadAllWorkouts() {
+  try { return JSON.parse(localStorage.getItem(WK_STORE)) || []; } catch { return []; }
+}
+
+function getMajorZone(workout) {
+  const totals = {};
+  workout.blocks.forEach(b => { totals[b.zone] = (totals[b.zone]||0) + b.secs; });
+  const dom = Object.entries(totals).sort((a,b) => b[1]-a[1])[0][0];
+  return ZONES.find(z => z.num === parseInt(dom)) || ZONES[3];
+}
+
+function renderWorkoutPicker() {
+  const workouts = loadAllWorkouts();
+  const picker   = document.getElementById('workoutPicker');
+  const list     = document.getElementById('workoutList');
+  if (!workouts.length) { picker.style.display = 'none'; return; }
+  picker.style.display = 'flex';
+
+  const freeSelected = selectedWorkoutId === null;
+  list.innerHTML = `
+    <div class="wk-pick-item${freeSelected?' selected':''}" onclick="selectWorkout(null)">
+      <div class="wk-pick-dot" style="background:var(--muted)"></div>
+      <span class="wk-pick-name">🚴 FREE RIDE</span>
+    </div>` +
+    workouts.map(w => {
+      const total = w.blocks.reduce((a,b)=>a+b.secs,0);
+      const mz    = getMajorZone(w);
+      const sel   = selectedWorkoutId === w.id;
+      return `<div class="wk-pick-item${sel?' selected':''}" onclick="selectWorkout(${w.id})"
+        style="${sel?`border-color:${mz.color};`:''}">
+        <div class="wk-pick-dot" style="background:${mz.color}"></div>
+        <span class="wk-pick-name">${w.name}</span>
+        <span class="wk-pick-dur">${formatTime(total)}</span>
+      </div>`;
+    }).join('');
+}
+
+function selectWorkout(id) {
+  selectedWorkoutId = id;
+  renderWorkoutPicker();
+  const btn = document.getElementById('startBtn');
+  if (id === null) {
+    btn.textContent = 'START FREE RIDE →';
+  } else {
+    const w = loadAllWorkouts().find(w => w.id === id);
+    if (w) btn.textContent = `▶ ${w.name.toUpperCase()} →`;
+  }
+}
+
 function startSession() {
   ftp = parseInt(document.getElementById('ftpOverlay').value) || 200;
   document.getElementById('ftpMain').value = ftp;
@@ -1240,6 +1438,177 @@ function startSession() {
   sessionActive = true;
   renderZoneBars();
   startTimer();
+
+  if (selectedWorkoutId !== null) {
+    const w = loadAllWorkouts().find(w => w.id === selectedWorkoutId);
+    if (w) { activateWorkout(w); return; }
+  }
+  updateDisplay();
+}
+
+// ── WORKOUT PLAYER ──────────────────────────────────────────────────────────
+function activateWorkout(workout) {
+  activeWorkout = workout;
+  wkBlockIdx    = 0;
+  wkSecsLeft    = workout.blocks[0].secs;
+
+  document.querySelector('.metrics').style.display = 'none';
+  document.getElementById('workoutMode').style.display = 'flex';
+  document.getElementById('wkStopBtn').style.display   = 'block';
+
+  buildWkTimeline();
+  applyWkBlock();
+  wkInterval = setInterval(wkTick, 1000);
+}
+
+function buildWkTimeline() {
+  const total = activeWorkout.blocks.reduce((a,b)=>a+b.secs,0);
+  document.getElementById('wkTimeline').innerHTML = activeWorkout.blocks.map((b,i) => {
+    const z   = ZONES.find(z => z.num === b.zone);
+    const pct = (b.secs / total * 100).toFixed(1);
+    return `<div class="wk-seg" id="wktl${i}" style="background:${z.color};width:${pct}%">
+      <div class="wk-seg-prog" id="wktlp${i}" style="width:0%"></div>
+    </div>`;
+  }).join('');
+}
+
+function applyWkBlock() {
+  const block = activeWorkout.blocks[wkBlockIdx];
+  const z     = ZONES.find(z => z.num === block.zone);
+  const next  = activeWorkout.blocks[wkBlockIdx + 1];
+
+  // Drive app-wide zone colour from target block
+  document.documentElement.style.setProperty('--zone-color', z.color);
+  document.getElementById('logoZone').textContent = `Z${z.num} · ${z.name.toUpperCase()}`;
+
+  // Flash transition
+  const flash = document.getElementById('zoneFlash');
+  flash.style.opacity = '0.15';
+  setTimeout(() => flash.style.opacity = '0', 400);
+
+  // Current block card
+  document.getElementById('wkCurrent').style.background = z.color;
+  document.getElementById('wkCurrent').style.border     = `1px solid ${z.color}`;
+  document.getElementById('wkZoneName').textContent = `Z${z.num} · ${z.name.toUpperCase()}`;
+  document.getElementById('wkTimer').textContent    = formatTime(wkSecsLeft);
+
+  // Next block
+  const nxEl = document.getElementById('wkNext');
+  if (next) {
+    const nz = ZONES.find(z => z.num === next.zone);
+    document.getElementById('wkNextSwatch').style.background = nz.color;
+    document.getElementById('wkNextZone').textContent = `Z${nz.num} · ${nz.name}`;
+    document.getElementById('wkNextDur').textContent  = formatTime(next.secs);
+    nxEl.style.display = 'flex';
+  } else {
+    nxEl.style.display = 'none';
+  }
+
+  // Timeline highlight
+  activeWorkout.blocks.forEach((_,i) => {
+    document.getElementById(`wktl${i}`)?.classList.toggle('current', i === wkBlockIdx);
+  });
+
+  // Zone bars reflect target
+  ZONES.forEach(zz => document.getElementById(`zbar${zz.num}`)?.classList.toggle('active', zz.num === z.num));
+}
+
+function wkTick() {
+  wkSecsLeft--;
+
+  // Timer display
+  document.getElementById('wkTimer').textContent = formatTime(Math.max(0, wkSecsLeft));
+
+  // Timeline progress fill
+  const block   = activeWorkout.blocks[wkBlockIdx];
+  const elapsed = block.secs - wkSecsLeft;
+  const pct     = Math.min(100, (elapsed / block.secs) * 100).toFixed(1);
+  const tlp = document.getElementById(`wktlp${wkBlockIdx}`);
+  if (tlp) tlp.style.width = pct + '%';
+
+  // Live strip + off-target
+  wkUpdateLive();
+
+  // Session history
+  if (livePower > 0) powerHistory.push(livePower);
+  if (liveHR > 0)    hrHistory.push(liveHR);
+  if (liveCad > 0)   cadHistory.push(liveCad);
+  if (powerHistory.length)
+    document.getElementById('avgPower').textContent =
+      Math.round(powerHistory.reduce((a,b)=>a+b,0)/powerHistory.length);
+  if (hrHistory.length)
+    document.getElementById('avgHR').textContent =
+      Math.round(hrHistory.reduce((a,b)=>a+b,0)/hrHistory.length);
+  if (cadHistory.length)
+    document.getElementById('avgCad').textContent =
+      Math.round(cadHistory.reduce((a,b)=>a+b,0)/cadHistory.length);
+
+  if (wkSecsLeft <= 0) {
+    document.getElementById(`wktl${wkBlockIdx}`)?.classList.add('done');
+    wkBlockIdx++;
+    if (wkBlockIdx >= activeWorkout.blocks.length) { wkFinish(); return; }
+    beep();
+    wkSecsLeft = activeWorkout.blocks[wkBlockIdx].secs;
+    applyWkBlock();
+  }
+}
+
+function wkUpdateLive() {
+  // Live strip values
+  const az = livePower > 0 ? zoneForPower(livePower) : null;
+  document.getElementById('wkLivePower').textContent = livePower > 0 ? livePower : '––';
+  document.getElementById('wkLivePower').style.color = az ? az.color : 'var(--text)';
+  document.getElementById('wkLiveCad').textContent   = liveCad > 0  ? liveCad   : '––';
+  document.getElementById('wkLiveHR').textContent    = liveHR > 0   ? liveHR    : '––';
+
+  // Off-target detection
+  const targetZ = activeWorkout.blocks[wkBlockIdx].zone;
+  const otEl    = document.getElementById('wkOffTarget');
+  const pulse   = document.getElementById('wkPulse');
+  if (az && az.num !== targetZ) {
+    otEl.style.display  = 'block';
+    otEl.textContent    = `RIDING Z${az.num} · ${az.name.toUpperCase()}`;
+    pulse.style.display = 'block';
+  } else {
+    otEl.style.display  = 'none';
+    pulse.style.display = 'none';
+  }
+}
+
+function wkFinish() {
+  clearInterval(wkInterval);
+  wkInterval    = null;
+  beep();
+  setTimeout(beep, 300);
+
+  document.getElementById('wkCurrent').style.background = '#2ed573';
+  document.getElementById('wkCurrent').style.border     = '1px solid #2ed573';
+  document.getElementById('wkZoneName').textContent     = 'WORKOUT COMPLETE';
+  document.getElementById('wkTimer').textContent        = '✓';
+  document.getElementById('wkOffTarget').style.display  = 'none';
+  document.getElementById('wkPulse').style.display      = 'none';
+  document.getElementById('wkNext').style.display       = 'none';
+  document.documentElement.style.setProperty('--zone-color', '#2ed573');
+  document.getElementById('logoZone').textContent = 'WORKOUT COMPLETE';
+
+  setTimeout(wkReturnToFreeRide, 4000);
+}
+
+function stopWorkout() {
+  if (!confirm('Stop the workout?')) return;
+  clearInterval(wkInterval);
+  wkInterval = null;
+  wkReturnToFreeRide();
+}
+
+function wkReturnToFreeRide() {
+  activeWorkout = null;
+  document.getElementById('workoutMode').style.display = 'none';
+  document.querySelector('.metrics').style.display     = 'flex';
+  document.getElementById('wkStopBtn').style.display   = 'none';
+  document.documentElement.style.setProperty('--zone-color', '#4a9eff');
+  document.getElementById('logoZone').textContent = 'POWER ZONES · LIVE';
+  lastZoneNum = null;
   updateDisplay();
 }
 
