@@ -330,20 +330,22 @@
     transition: width 1s linear;
   }
   .wk-current {
-    flex: 1;
-    min-height: 0;
+    flex-shrink: 0;
     border-radius: 10px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
+    padding: 8px 14px;
     position: relative;
     overflow: hidden;
+    gap: 8px;
   }
-  .wk-cur-label  { font-size: 7px; letter-spacing: 3px; color: rgba(255,255,255,0.65); flex-shrink: 0; }
-  .wk-zone-name  { font-family: 'Bebas Neue', sans-serif; font-size: clamp(13px,3.5vw,20px); letter-spacing: 3px; color: #fff; flex-shrink: 0; }
-  .wk-timer      { font-family: 'Bebas Neue', sans-serif; font-size: clamp(36px, 8vh, 11vh); line-height: 0.9; color: #fff; letter-spacing: 4px; }
-  .wk-timer-unit { font-size: 7px; letter-spacing: 2px; color: rgba(255,255,255,0.65); flex-shrink: 0; }
+  .wk-cur-left { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+  .wk-cur-label  { font-size: 7px; letter-spacing: 2px; color: rgba(255,255,255,0.65); }
+  .wk-zone-name  { font-family: 'Bebas Neue', sans-serif; font-size: clamp(16px,4.5vw,24px); letter-spacing: 3px; color: #fff; line-height: 1; }
+  .wk-timer      { font-family: 'Bebas Neue', sans-serif; font-size: clamp(42px, 11vw, 64px); line-height: 0.9; color: #fff; letter-spacing: 3px; }
+  .wk-timer-unit { font-size: 7px; letter-spacing: 2px; color: rgba(255,255,255,0.65); }
   .wk-off-target {
     position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
     padding: 3px 12px; border-radius: 20px; background: rgba(0,0,0,0.5);
@@ -363,14 +365,14 @@
   .wk-next-lbl  { font-size: 7px; letter-spacing: 2px; color: var(--muted); }
   .wk-next-zone { font-family: 'Bebas Neue', sans-serif; font-size: 17px; letter-spacing: 2px; }
   .wk-next-dur  { font-size: 9px; color: var(--muted); }
-  .wk-live-strip { display: flex; gap: 4px; flex: 2; min-height: 0; }
+  .wk-live-strip { display: flex; gap: 4px; flex: 1; min-height: 0; }
   .wk-live-card {
     flex: 1; background: var(--surface); border: 1px solid var(--zone-color);
     border-radius: 8px; padding: 4px; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 2px; min-height: 0;
+    align-items: center; justify-content: center; gap: 1px; min-height: 0;
   }
   .wk-live-lbl  { font-size: 7px; letter-spacing: 2px; color: var(--muted); flex-shrink: 0; }
-  .wk-live-val  { font-family: 'Bebas Neue', sans-serif; font-size: clamp(44px, 13vw, 80px); letter-spacing: 2px; color: var(--text); line-height: 0.9; }
+  .wk-live-val  { font-family: 'Bebas Neue', sans-serif; font-size: clamp(48px, 16vw, 15vh); letter-spacing: 2px; color: var(--text); line-height: 0.88; }
   .wk-live-unit { font-size: 8px; color: var(--muted); flex-shrink: 0; }
   /* Workout picker in overlay */
   .wk-pick-item {
@@ -734,10 +736,12 @@
   <div id="workoutMode">
     <div class="wk-timeline" id="wkTimeline"></div>
     <div class="wk-current" id="wkCurrent">
-      <div class="wk-cur-label">CURRENT BLOCK</div>
-      <div class="wk-zone-name" id="wkZoneName">––</div>
+      <div class="wk-cur-left">
+        <div class="wk-cur-label">CURRENT BLOCK</div>
+        <div class="wk-zone-name" id="wkZoneName">––</div>
+        <div class="wk-timer-unit">REMAINING</div>
+      </div>
       <div class="wk-timer" id="wkTimer">0:00</div>
-      <div class="wk-timer-unit">REMAINING</div>
       <div class="wk-off-target" id="wkOffTarget"></div>
       <div class="wk-pulse-ring" id="wkPulse"></div>
     </div>
