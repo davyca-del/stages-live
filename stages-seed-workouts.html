@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loading Workouts…</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #08080f; color: #e8e8f0; font-family: 'DM Mono', monospace;
+    height: 100dvh; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 20px; padding: 24px;
+  }
+  h1 { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 6px; }
+  .list { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 420px; }
+  .item {
+    display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+    background: #0f0f1a; border: 1px solid #1e1e2e; border-radius: 8px;
+  }
+  .swatch { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .name { font-family: 'Bebas Neue', sans-serif; font-size: 15px; letter-spacing: 2px; flex: 1; }
+  .meta { font-size: 10px; color: #888; letter-spacing: 1px; }
+  .tick { font-size: 16px; color: #2ed573; }
+  .btn {
+    width: 100%; max-width: 420px; padding: 16px; border-radius: 10px; border: none;
+    background: #2ed573; color: #08080f; font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px; letter-spacing: 4px; cursor: pointer;
+  }
+  .note { font-size: 10px; color: #888; letter-spacing: 1px; text-align: center; max-width: 420px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<h1>WORKOUT LIBRARY</h1>
+
+<div class="list" id="list"></div>
+
+<button class="btn" id="btn" onclick="seedAndGo()">LOAD ALL WORKOUTS →</button>
+
+<div class="note" id="note">
+  Tap above to save all 6 workouts to this device.<br>
+  You only need to do this once — they'll persist in your browser.
+</div>
+
+<script>
+const STORE_KEY = 'stages_workouts_v1';
+
+const ZONES = [
+  null, // placeholder so zone num = index
+  { color:'#4a9eff', name:'Active Recovery' },
+  { color:'#2ed573', name:'Endurance'       },
+  { color:'#ffe000', name:'Tempo'           },
+  { color:'#ffa502', name:'Threshold'       },
+  { color:'#ff4757', name:'VO2 Max'         },
+  { color:'#8b1a1a', name:'Anaerobic'       },
+  { color:'#a55eea', name:'Neuromuscular'   },
+];
+
+// ── THE WORKOUTS ─────────────────────────────────────────────────────────────
+// Each block: { zone: 1-7, secs: seconds }
+
+const WORKOUTS = [
+  {
+    name: 'Sweet Spot Express',
+    desc: '30 min · 2×10 min threshold blocks',
+    color: '#ffa502',
+    blocks: [
+      { zone:2, secs:300  },  // 5 min Z2 warmup
+      { zone:4, secs:600  },  // 10 min Z4
+      { zone:2, secs:180  },  // 3 min Z2 recovery
+      { zone:4, secs:600  },  // 10 min Z4
+      { zone:1, secs:120  },  // 2 min Z1 cooldown
+    ]
+  },
+  {
+    name: 'The Pyramid',
+    desc: '30 min · climb through all zones and back down',
+    color: '#ff4757',
+    blocks: [
+      { zone:2, secs:300  },  // 5 min Z2
+      { zone:3, secs:240  },  // 4 min Z3
+      { zone:4, secs:180  },  // 3 min Z4
+      { zone:5, secs:120  },  // 2 min Z5
+      { zone:6, secs:60   },  // 1 min Z6 — peak
+      { zone:5, secs:120  },  // 2 min Z5
+      { zone:4, secs:180  },  // 3 min Z4
+      { zone:3, secs:240  },  // 4 min Z3
+      { zone:2, secs:360  },  // 6 min Z2 cooldown
+    ]
+  },
+  {
+    name: 'VO2 Blasters',
+    desc: '30 min · 5×2 min at VO2 max with equal recovery',
+    color: '#ff4757',
+    blocks: [
+      { zone:2, secs:300  },  // 5 min Z2 warmup
+      { zone:3, secs:120  },  // 2 min Z3 build
+      { zone:5, secs:120  },  // 2 min Z5 ×1
+      { zone:2, secs:120  },  // 2 min recovery
+      { zone:5, secs:120  },  // 2 min Z5 ×2
+      { zone:2, secs:120  },  // 2 min recovery
+      { zone:5, secs:120  },  // 2 min Z5 ×3
+      { zone:2, secs:120  },  // 2 min recovery
+      { zone:5, secs:120  },  // 2 min Z5 ×4
+      { zone:2, secs:120  },  // 2 min recovery
+      { zone:5, secs:120  },  // 2 min Z5 ×5
+      { zone:2, secs:300  },  // 5 min Z2 cooldown
+    ]
+  },
+  {
+    name: 'Endurance Foundation',
+    desc: '44 min · 30 continuous minutes in Z3 tempo',
+    color: '#ffe000',
+    blocks: [
+      { zone:1, secs:180  },  // 3 min Z1 easy start
+      { zone:2, secs:300  },  // 5 min Z2 warmup
+      { zone:3, secs:1800 },  // 30 min Z3 sustained tempo
+      { zone:2, secs:240  },  // 4 min Z2 cooldown
+      { zone:1, secs:120  },  // 2 min Z1 spin down
+    ]
+  },
+  {
+    name: 'Threshold Grinder',
+    desc: '44 min · 3×10 min at threshold — the classic',
+    color: '#ffa502',
+    blocks: [
+      { zone:2, secs:360  },  // 6 min Z2 warmup
+      { zone:4, secs:600  },  // 10 min Z4 block 1
+      { zone:2, secs:180  },  // 3 min recovery
+      { zone:4, secs:600  },  // 10 min Z4 block 2
+      { zone:2, secs:180  },  // 3 min recovery
+      { zone:4, secs:600  },  // 10 min Z4 block 3
+      { zone:1, secs:120  },  // 2 min cooldown
+    ]
+  },
+  {
+    name: 'The Destroyer',
+    desc: '44 min · 8×1 min Z6 anaerobic efforts in two sets',
+    color: '#8b1a1a',
+    blocks: [
+      { zone:2, secs:480  },  // 8 min Z2 warmup
+      { zone:3, secs:240  },  // 4 min Z3 build
+      { zone:6, secs:60   },  // 1 min Z6 ×1
+      { zone:2, secs:120  },  // 2 min recovery
+      { zone:6, secs:60   },  // 1 min Z6 ×2
+      { zone:2, secs:120  },  // 2 min recovery
+      { zone:6, secs:60   },  // 1 min Z6 ×3
+      { zone:2, secs:120  },  // 2 min recovery
+      { zone:6, secs:60   },  // 1 min Z6 ×4
+      { zone:2, secs:240  },  // 4 min mid-rest
+      { zone:6, secs:60   },  // 1 min Z6 ×5
+      { zone:2, secs:120  },  // 2 min recovery
+      { zone:6, secs:60   },  // 1 min Z6 ×6
+      { zone:2, secs:120  },  // 2 min recovery
+      { zone:6, secs:60   },  // 1 min Z6 ×7
+      { zone:2, secs:120  },  // 2 min recovery
+      { zone:6, secs:60   },  // 1 min Z6 ×8
+      { zone:2, secs:480  },  // 8 min Z2 cooldown
+    ]
+  },
+];
+
+// ── VERIFY TOTALS ─────────────────────────────────────────────────────────────
+function fmtSecs(s) {
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+function renderList() {
+  const list = document.getElementById('list');
+  list.innerHTML = WORKOUTS.map(w => {
+    const total = w.blocks.reduce((a, b) => a + b.secs, 0);
+    return `<div class="item">
+      <div class="swatch" style="background:${w.color}"></div>
+      <div class="name">${w.name}</div>
+      <div class="meta">${fmtSecs(total)}</div>
+    </div>`;
+  }).join('');
+}
+
+function seedAndGo() {
+  const existing = (() => { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch { return []; } })();
+  const existingNames = existing.map(w => w.name);
+
+  const toAdd = WORKOUTS.filter(w => !existingNames.includes(w.name)).map(w => ({
+    id: Date.now() + Math.random(),
+    name: w.name,
+    blocks: w.blocks,
+    created: new Date().toLocaleDateString(),
+  }));
+
+  const merged = [...existing, ...toAdd];
+  localStorage.setItem(STORE_KEY, JSON.stringify(merged));
+
+  const btn = document.getElementById('btn');
+  const note = document.getElementById('note');
+
+  if (toAdd.length === 0) {
+    btn.textContent = 'ALREADY LOADED ✓';
+    btn.style.background = '#888';
+    note.textContent = 'All workouts are already in your library.';
+  } else {
+    btn.textContent = `${toAdd.length} WORKOUTS SAVED ✓`;
+    btn.style.background = '#2ed573';
+    note.textContent = 'Redirecting to Workout Builder…';
+    setTimeout(() => { window.location.href = 'stages-workout.html'; }, 1200);
+  }
+}
+
+renderList();
+</script>
+</body>
+</html>
