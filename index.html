@@ -330,7 +330,7 @@
     transition: width 1s linear;
   }
   .wk-current {
-    flex: 1;
+    flex: 2;
     min-height: 0;
     border-radius: 10px;
     display: flex;
@@ -342,7 +342,7 @@
   }
   .wk-cur-label  { font-size: 8px; letter-spacing: 3px; color: rgba(255,255,255,0.65); flex-shrink: 0; }
   .wk-zone-name  { font-family: 'Bebas Neue', sans-serif; font-size: clamp(14px,4vw,22px); letter-spacing: 4px; color: #fff; flex-shrink: 0; }
-  .wk-timer      { font-family: 'Bebas Neue', sans-serif; font-size: clamp(60px,22vh,28vh); line-height: 0.85; color: #fff; letter-spacing: 4px; }
+  .wk-timer      { font-family: 'Bebas Neue', sans-serif; font-size: clamp(48px, 12vh, 16vh); line-height: 0.85; color: #fff; letter-spacing: 4px; }
   .wk-timer-unit { font-size: 8px; letter-spacing: 3px; color: rgba(255,255,255,0.65); flex-shrink: 0; }
   .wk-off-target {
     position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
@@ -366,12 +366,12 @@
   .wk-live-strip { display: flex; gap: 4px; flex-shrink: 0; }
   .wk-live-card {
     flex: 1; background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 4px; display: flex; flex-direction: column;
-    align-items: center; gap: 1px;
+    border-radius: 8px; padding: 8px 4px; display: flex; flex-direction: column;
+    align-items: center; gap: 2px;
   }
   .wk-live-lbl  { font-size: 7px; letter-spacing: 2px; color: var(--muted); }
-  .wk-live-val  { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 2px; color: var(--text); }
-  .wk-live-unit { font-size: 7px; color: var(--muted); }
+  .wk-live-val  { font-family: 'Bebas Neue', sans-serif; font-size: clamp(36px, 10vw, 60px); letter-spacing: 2px; color: var(--text); line-height: 1; }
+  .wk-live-unit { font-size: 8px; color: var(--muted); }
   /* Workout picker in overlay */
   .wk-pick-item {
     display: flex; align-items: center; gap: 10px; padding: 8px 12px;
