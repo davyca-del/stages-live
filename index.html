@@ -570,6 +570,31 @@
   <button class="start-btn" id="startBtn" onclick="startSession()">START FREE RIDE →</button>
   <a href="stages-workout.html" style="width:100%;max-width:480px;display:block;text-align:center;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-decoration:none;margin-top:6px;">⚙ WORKOUT BUILDER</a>
 
+  <!-- ── Spotify ── -->
+  <div style="width:100%;max-width:480px;display:flex;flex-direction:column;gap:6px;margin-top:6px;">
+    <button id="spotifyLoginBtn" onclick="spotifyLogin()"
+      style="width:100%;padding:10px;border-radius:8px;border:1px solid #1db954;background:var(--surface2);color:#1db954;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;cursor:pointer;">
+      🎵 CONNECT SPOTIFY
+    </button>
+    <div id="spotifyDetails" style="display:none;flex-direction:column;gap:5px;">
+      <div style="display:flex;gap:6px;">
+        <input id="playlistInput" type="text" placeholder="Paste Spotify playlist URL…"
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'DM Mono',monospace;font-size:10px;padding:8px 10px;outline:none;">
+        <button id="playlistSaveBtn" onclick="savePlaylist()"
+          style="padding:8px 12px;border-radius:7px;border:none;background:#1db954;color:#000;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;flex-shrink:0;">SAVE</button>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <select id="deviceSelect" onchange="saveDevice()"
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'DM Mono',monospace;font-size:10px;padding:8px 10px;outline:none;">
+          <option>Open Spotify on your phone first…</option>
+        </select>
+        <button onclick="refreshDevices()"
+          style="padding:8px 12px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;flex-shrink:0;">↻</button>
+      </div>
+      <div style="font-size:9px;color:var(--muted);text-align:center;letter-spacing:1px;">Playlist plays when a workout starts · pauses when it ends</div>
+    </div>
+  </div>
+
   <div style="width:100%;max-width:480px;margin-top:6px;">
     <div style="font-size:9px;letter-spacing:2px;color:var(--muted);text-align:center;margin-bottom:8px;">── OR ──</div>
     <div style="display:flex;gap:8px;align-items:center;">
@@ -1463,6 +1488,7 @@ function activateWorkout(workout) {
   buildWkTimeline();
   applyWkBlock();
   wkInterval = setInterval(wkTick, 1000);
+  spotifyPlay(); // start playlist
 }
 
 function buildWkTimeline() {
@@ -1584,6 +1610,7 @@ function wkFinish() {
   wkInterval    = null;
   beep();
   setTimeout(beep, 300);
+  spotifyPause();
 
   document.getElementById('wkCurrent').style.background = '#2ed573';
   document.getElementById('wkCurrent').style.border     = '1px solid #2ed573';
@@ -1602,6 +1629,7 @@ function stopWorkout() {
   if (!confirm('Stop the workout?')) return;
   clearInterval(wkInterval);
   wkInterval = null;
+  spotifyPause();
   wkReturnToFreeRide();
 }
 
@@ -1617,6 +1645,217 @@ function wkReturnToFreeRide() {
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────────
+// ── SPOTIFY INTEGRATION ────────────────────────────────────────────────────
+const SP_CLIENT_ID    = '3b0ae8f7ccd940a297e7ffb3f586662f';
+const SP_REDIRECT     = 'https://davyca-del.github.io/stages-live/stages-live.html';
+const SP_SCOPES       = 'user-modify-playback-state user-read-playback-state streaming';
+const SP_TOKEN_KEY    = 'sp_token_v1';
+const SP_PLAYLIST_KEY = 'sp_playlist_id';
+const SP_DEVICE_KEY   = 'sp_device_id';
+
+// ── PKCE helpers ───────────────────────────────────────────────────────────
+function b64url(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+async function pkceChallenge() {
+  const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
+  const digest   = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  return { verifier, challenge: b64url(digest) };
+}
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+async function spotifyLogin() {
+  const { verifier, challenge } = await pkceChallenge();
+  const state = b64url(crypto.getRandomValues(new Uint8Array(8)));
+  localStorage.setItem('sp_verifier', verifier);
+  localStorage.setItem('sp_state', state);
+  const url = new URL('https://accounts.spotify.com/authorize');
+  url.searchParams.set('client_id',             SP_CLIENT_ID);
+  url.searchParams.set('response_type',         'code');
+  url.searchParams.set('redirect_uri',          SP_REDIRECT);
+  url.searchParams.set('scope',                 SP_SCOPES);
+  url.searchParams.set('code_challenge_method', 'S256');
+  url.searchParams.set('code_challenge',        challenge);
+  url.searchParams.set('state',                 state);
+  window.location.href = url.toString();
+}
+
+async function handleSpotifyCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code   = params.get('code');
+  const state  = params.get('state');
+  if (!code) return;
+
+  const savedState = localStorage.getItem('sp_state');
+  if (state !== savedState) {
+    history.replaceState({}, '', window.location.pathname);
+    return;
+  }
+  const verifier = localStorage.getItem('sp_verifier');
+  localStorage.removeItem('sp_verifier');
+  localStorage.removeItem('sp_state');
+
+  const res  = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id:     SP_CLIENT_ID,
+      grant_type:    'authorization_code',
+      code,
+      redirect_uri:  SP_REDIRECT,
+      code_verifier: verifier,
+    })
+  });
+  const data = await res.json();
+  if (data.access_token) {
+    localStorage.setItem(SP_TOKEN_KEY, JSON.stringify({
+      access_token:  data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at:    Date.now() + data.expires_in * 1000,
+    }));
+    history.replaceState({}, '', window.location.pathname);
+    updateSpotifyUI(true);
+    await refreshDevices();
+  }
+}
+
+async function getSpToken() {
+  let d;
+  try { d = JSON.parse(localStorage.getItem(SP_TOKEN_KEY)); } catch { return null; }
+  if (!d) return null;
+  if (Date.now() < d.expires_at - 60000) return d.access_token;
+  // Refresh
+  const res = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id:     SP_CLIENT_ID,
+      grant_type:    'refresh_token',
+      refresh_token: d.refresh_token,
+    })
+  });
+  const r = await res.json();
+  if (r.access_token) {
+    localStorage.setItem(SP_TOKEN_KEY, JSON.stringify({
+      access_token:  r.access_token,
+      refresh_token: r.refresh_token || d.refresh_token,
+      expires_at:    Date.now() + r.expires_in * 1000,
+    }));
+    return r.access_token;
+  }
+  return null;
+}
+
+// ── Devices ────────────────────────────────────────────────────────────────
+async function refreshDevices() {
+  const token = await getSpToken();
+  if (!token) return;
+  const res  = await fetch('https://api.spotify.com/v1/me/player/devices', {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  const data    = await res.json();
+  const devices = data.devices || [];
+  const select  = document.getElementById('deviceSelect');
+  if (!select) return;
+  select.innerHTML = devices.length
+    ? devices.map(d => `<option value="${d.id}">${d.name} · ${d.type}</option>`).join('')
+    : '<option value="">No devices — open Spotify on your phone first</option>';
+  const saved = localStorage.getItem(SP_DEVICE_KEY);
+  if (saved) {
+    const opt = select.querySelector(`option[value="${saved}"]`);
+    if (opt) opt.selected = true;
+  } else if (devices.length) {
+    localStorage.setItem(SP_DEVICE_KEY, devices[0].id);
+  }
+}
+
+function saveDevice() {
+  const v = document.getElementById('deviceSelect')?.value;
+  if (v) localStorage.setItem(SP_DEVICE_KEY, v);
+}
+
+// ── Playlist ───────────────────────────────────────────────────────────────
+function extractPlaylistId(input) {
+  return (input.match(/playlist\/([A-Za-z0-9]+)/)    ||
+          input.match(/spotify:playlist:([A-Za-z0-9]+)/) ||
+          input.match(/^([A-Za-z0-9]{22})$/))?.[1] || null;
+}
+
+function savePlaylist() {
+  const id = extractPlaylistId(document.getElementById('playlistInput').value.trim());
+  if (!id) { alert('Please paste a valid Spotify playlist URL or URI.'); return; }
+  localStorage.setItem(SP_PLAYLIST_KEY, id);
+  const btn = document.getElementById('playlistSaveBtn');
+  btn.textContent = 'SAVED ✓';
+  setTimeout(() => { btn.textContent = 'SAVE'; }, 2000);
+}
+
+// ── Playback ───────────────────────────────────────────────────────────────
+async function spotifyPlay() {
+  const token      = await getSpToken();
+  const playlistId = localStorage.getItem(SP_PLAYLIST_KEY);
+  if (!token || !playlistId) return;
+  const deviceId = document.getElementById('deviceSelect')?.value
+                   || localStorage.getItem(SP_DEVICE_KEY);
+  // Transfer playback to chosen device
+  if (deviceId) {
+    await fetch('https://api.spotify.com/v1/me/player', {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device_ids: [deviceId], play: false })
+    });
+    await new Promise(r => setTimeout(r, 600));
+  }
+  // Start playlist
+  const playUrl = deviceId
+    ? `https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`
+    : 'https://api.spotify.com/v1/me/player/play';
+  await fetch(playUrl, {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ context_uri: `spotify:playlist:${playlistId}` })
+  });
+}
+
+async function spotifyPause() {
+  const token = await getSpToken();
+  if (!token) return;
+  await fetch('https://api.spotify.com/v1/me/player/pause', {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+}
+
+// ── UI ─────────────────────────────────────────────────────────────────────
+function updateSpotifyUI(connected) {
+  const btn     = document.getElementById('spotifyLoginBtn');
+  const details = document.getElementById('spotifyDetails');
+  if (!btn) return;
+  if (connected) {
+    btn.textContent       = '🎵 SPOTIFY CONNECTED ✓';
+    btn.style.background  = 'color-mix(in srgb, #1db954 12%, transparent)';
+    btn.onclick           = null;
+    if (details) details.style.display = 'flex';
+    const saved = localStorage.getItem(SP_PLAYLIST_KEY);
+    if (saved) {
+      const inp = document.getElementById('playlistInput');
+      if (inp) inp.value = `spotify:playlist:${saved}`;
+    }
+  } else {
+    btn.textContent = '🎵 CONNECT SPOTIFY';
+    btn.onclick     = spotifyLogin;
+    if (details) details.style.display = 'none';
+  }
+}
+
+async function initSpotify() {
+  await handleSpotifyCallback();
+  const token = await getSpToken();
+  updateSpotifyUI(!!token);
+  if (token) await refreshDevices();
+}
+
 function toggleSmoothing() {
   smoothingEnabled = !smoothingEnabled;
   if (!smoothingEnabled) rawPowerBuffer = [];
@@ -1629,6 +1868,7 @@ function init() {
     document.getElementById('noBtWarn').style.display = 'block';
   }
   renderZoneBars();
+  initSpotify();
 
   // Sync FTP inputs
   document.getElementById('ftpOverlay').addEventListener('input', function() {
