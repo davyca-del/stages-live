@@ -353,11 +353,11 @@
     .wk-next  { flex-shrink: 0; }
     .wk-live-strip {
       flex: 1;
-      flex-direction: column;
+      flex-direction: row;
       min-height: 0;
     }
-    .wk-live-card { flex: 1; }
-    .wk-live-val  { font-size: clamp(32px, 8vw, 12vh); }
+    .wk-live-card { flex: 1; min-height: 0; }
+    .wk-live-val  { font-size: clamp(28px, 6vw, 10vh); }
   }
   #workoutMode {
     flex: 1;
@@ -1724,55 +1724,69 @@ function wkReturnToFreeRide() {
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────────
-// ── GOOGLE CAST ────────────────────────────────────────────────────────────
-let castAvailable = false;
+// ── CAST / PRESENTATION ────────────────────────────────────────────────────
+let presentationConn = null;
 
-// Called by Cast SDK when it's ready
+async function requestCast() {
+  // Try Presentation API first (works with Chromecast on Chrome Android)
+  if (navigator.presentation && navigator.presentation.request !== undefined) {
+    try {
+      const request = new PresentationRequest([window.location.href]);
+      presentationConn = await request.start();
+      updateCastBtn(true);
+      log('Presentation started on external display');
+      // Route Spotify to Gym TV
+      spotifyPlay();
+      presentationConn.addEventListener('terminate', () => {
+        presentationConn = null;
+        updateCastBtn(false);
+      });
+      return;
+    } catch(e) {
+      if (e.name === 'AbortError') return; // user cancelled picker
+      log('Presentation API failed: ' + e.message);
+    }
+  }
+
+  // Fallback: Google Cast SDK
+  if (typeof cast !== 'undefined' && cast.framework) {
+    try {
+      await cast.framework.CastContext.getInstance().requestSession();
+    } catch(e) {
+      if (e !== chrome.cast.ErrorCode.CANCEL) log('Cast error: ' + JSON.stringify(e));
+    }
+    return;
+  }
+
+  // Last resort: instruct user
+  alert('Tap the three dots in Chrome → Cast → Cast tab → Select Gym TV');
+}
+
+function updateCastBtn(connected) {
+  const btn = document.getElementById('castBtn');
+  if (!btn) return;
+  btn.style.color       = connected ? '#2ed573' : 'var(--muted)';
+  btn.style.borderColor = connected ? '#2ed573' : 'var(--border)';
+}
+
+// Google Cast SDK callback (if SDK loads)
 window['__onGCastApiAvailable'] = function(isAvailable) {
-  castAvailable = isAvailable;
   if (!isAvailable) return;
-
-  const ctx = cast.framework.CastContext.getInstance();
-  ctx.setOptions({
+  cast.framework.CastContext.getInstance().setOptions({
     receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
     autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
   });
-
-  ctx.addEventListener(
+  cast.framework.CastContext.getInstance().addEventListener(
     cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
     (event) => {
-      const btn = document.getElementById('castBtn');
       const connected =
         event.sessionState === cast.framework.SessionState.SESSION_STARTED ||
         event.sessionState === cast.framework.SessionState.SESSION_RESUMED;
-
-      if (btn) {
-        btn.style.color        = connected ? '#2ed573' : 'var(--muted)';
-        btn.style.borderColor  = connected ? '#2ed573' : 'var(--border)';
-      }
-
-      if (connected) {
-        log('Cast session started — routing Spotify to Gym TV');
-        // Trigger Spotify on Gym TV if workout is active
-        if (activeWorkout) spotifyPlay();
-      }
+      updateCastBtn(connected);
+      if (connected) spotifyPlay();
     }
   );
 };
-
-async function requestCast() {
-  if (!castAvailable) {
-    alert('Cast not available. Make sure you are using Chrome.');
-    return;
-  }
-  try {
-    await cast.framework.CastContext.getInstance().requestSession();
-  } catch(e) {
-    if (e !== chrome.cast.ErrorCode.CANCEL) {
-      log('Cast error: ' + JSON.stringify(e));
-    }
-  }
-}
 
 
 const SP_CLIENT_ID    = '3b0ae8f7ccd940a297e7ffb3f586662f';
