@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>POWER ZONES · LIVE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stages Live">
+<meta name="theme-color" content="#08080f">
+<link rel="manifest" href="manifest.json">
+<title>POWER ZONES - LIVE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -367,8 +373,7 @@
   .wk-next-dur  { font-size: 9px; color: var(--muted); }
   .wk-live-strip { display: flex; gap: 4px; flex: 1; min-height: 0; }
   .wk-live-card {
-    flex: 1; background: var(--surface); border: 1px solid var(--zone-color);
-    border-radius: 8px; padding: 4px; display: flex; flex-direction: column;
+    flex: 1; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 1px; min-height: 0;
   }
   .wk-live-lbl  { font-size: 7px; letter-spacing: 2px; color: var(--muted); flex-shrink: 0; }
@@ -534,7 +539,7 @@
 
 <!-- ── CONNECT OVERLAY ── -->
 <div id="overlay">
-  <div class="overlay-title">POWER ZONES · LIVE</div>
+  <div class="overlay-title">POWER ZONES - LIVE</div>
   <div class="overlay-sub">
     Connect your Stages SC3 to begin<br>
     Heart rate is optional — connect Polar H10 directly, or IC1000 if using the bike display
@@ -555,11 +560,11 @@
     </button>
     <button class="connect-btn" id="xossBtn" onclick="connectXoss()">
       <span>↻ CADENCE</span>
-      <span class="connect-btn-sub" id="xossSub">XOSS · optional</span>
+      <span class="connect-btn-sub" id="xossSub">XOSS - optional</span>
     </button>
     <button class="connect-btn" id="polarBtn" onclick="connectPolar()">
       <span>♥ HEART RATE</span>
-      <span class="connect-btn-sub" id="polarSub">Polar or IC1000 · optional</span>
+      <span class="connect-btn-sub" id="polarSub">Polar or IC1000 - optional</span>
     </button>
   </div>
   <!-- Workout picker — populated when Stages connects -->
@@ -591,7 +596,7 @@
         <button onclick="refreshDevices()"
           style="padding:8px 12px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;flex-shrink:0;">↻</button>
       </div>
-      <div style="font-size:9px;color:var(--muted);text-align:center;letter-spacing:1px;">Playlist plays when a workout starts · pauses when it ends</div>
+      <div style="font-size:9px;color:var(--muted);text-align:center;letter-spacing:1px;">Playlist plays when a workout starts - pauses when it ends</div>
     </div>
   </div>
 
@@ -611,7 +616,7 @@
         20 MIN<br><span style="font-size:9px;letter-spacing:1px;font-family:'DM Mono',monospace;">×0.95</span>
       </button>
     </div>
-    <div style="font-size:9px;letter-spacing:1px;color:var(--muted);text-align:center;margin-top:6px;opacity:0.6;">FTP TEST · ride all-out for the full duration</div>
+    <div style="font-size:9px;letter-spacing:1px;color:var(--muted);text-align:center;margin-top:6px;opacity:0.6;">FTP TEST - ride all-out for the full duration</div>
   </div>
 </div>
 
@@ -620,7 +625,7 @@
 
   <!-- Header -->
   <div style="display:flex;align-items:center;justify-content:space-between;width:100%;max-width:500px;">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:4px;color:var(--text);" id="ftpTestTitle">FTP TEST · 20 MIN</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:4px;color:var(--text);" id="ftpTestTitle">FTP TEST - 20 MIN</div>
     <button onclick="cancelFTPTest()" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;padding:6px 12px;cursor:pointer;">CANCEL</button>
   </div>
 
@@ -704,7 +709,7 @@
 
 <div id="app">
   <header>
-    <div class="logo" id="logoZone">POWER ZONES · LIVE</div>
+    <div class="logo" id="logoZone">POWER ZONES - LIVE</div>
     <div class="ftp-control">
       <span class="ftp-label">FTP</span>
       <input type="number" class="ftp-input" id="ftpMain" value="200" min="50" max="700" oninput="onFTPChange()">
@@ -886,7 +891,7 @@ function renderZoneBars() {
       <div class="zone-bar-track">
         <div class="zone-bar-fill" style="background:${z.color}"></div>
       </div>
-      <div class="zone-bar-label">Z${z.num} · ${z.short}</div>
+      <div class="zone-bar-label">Z${z.num} - ${z.short}</div>
       <div class="zone-bar-watts">${label}W</div>
     </div>`;
   }).join('');
@@ -919,13 +924,13 @@ function updateDisplay() {
     const flash = document.getElementById('zoneFlash');
     flash.style.opacity = '0.12';
     setTimeout(() => flash.style.opacity = '0', 400);
-    document.getElementById('logoZone').textContent = `Z${z.num} · ${z.name.toUpperCase()}`;
+    document.getElementById('logoZone').textContent = `Z${z.num} - ${z.name.toUpperCase()}`;
     ZONES.forEach(zz => {
       document.getElementById(`zbar${zz.num}`)?.classList.toggle('active', zz.num === z.num);
     });
   } else if (!z) {
     document.documentElement.style.setProperty('--zone-color', '#4a9eff');
-    document.getElementById('logoZone').textContent = 'POWER ZONES · LIVE';
+    document.getElementById('logoZone').textContent = 'POWER ZONES - LIVE';
     lastZoneNum = null;
     ZONES.forEach(zz => document.getElementById(`zbar${zz.num}`)?.classList.remove('active'));
   }
@@ -1078,7 +1083,7 @@ async function connectStages() {
     checkStartReady();
   } catch(e) {
     setPill('stagesPill','idle');
-    setConnectBtn('stagesBtn','stagesSub','','Power · Cadence');
+    setConnectBtn('stagesBtn','stagesSub','','Power - Cadence');
     if (e.name !== 'NotFoundError') alert('Stages connection failed: ' + e.message);
   }
 }
@@ -1150,7 +1155,7 @@ async function connectXoss() {
     setConnectBtn('xossBtn','xossSub','done', device.name || 'XOSS');
   } catch(e) {
     setPill('xossPill','idle');
-    setConnectBtn('xossBtn','xossSub','','XOSS · optional');
+    setConnectBtn('xossBtn','xossSub','','XOSS - optional');
     if (e.name !== 'NotFoundError') alert('Cadence sensor connection failed: ' + e.message);
   }
 }
@@ -1310,7 +1315,7 @@ function startFTPTest(minutes) {
   ftpTestActive   = true;
 
   document.getElementById('overlay').classList.add('hidden');
-  document.getElementById('ftpTestTitle').textContent = `FTP TEST · ${minutes} MIN`;
+  document.getElementById('ftpTestTitle').textContent = `FTP TEST - ${minutes} MIN`;
   document.getElementById('ftpCountdown').textContent = formatTime(ftpTestSeconds);
   document.getElementById('ftpTimerFill').style.width = '100%';
   document.getElementById('ftpLivePower').textContent = '––';
@@ -1477,6 +1482,7 @@ function startSession() {
 
 // ── WORKOUT PLAYER ──────────────────────────────────────────────────────────
 function activateWorkout(workout) {
+  if (wkInterval) { clearInterval(wkInterval); wkInterval = null; }
   activeWorkout = workout;
   wkBlockIdx    = 0;
   wkSecsLeft    = workout.blocks[0].secs;
@@ -1487,8 +1493,9 @@ function activateWorkout(workout) {
 
   buildWkTimeline();
   applyWkBlock();
+  document.getElementById('zoneBars').style.display = 'none';
   wkInterval = setInterval(wkTick, 1000);
-  spotifyPlay(); // start playlist
+  spotifyPlay();
 }
 
 function buildWkTimeline() {
@@ -1509,7 +1516,7 @@ function applyWkBlock() {
 
   // Drive app-wide zone colour from target block
   document.documentElement.style.setProperty('--zone-color', z.color);
-  document.getElementById('logoZone').textContent = `Z${z.num} · ${z.name.toUpperCase()}`;
+  document.getElementById('logoZone').textContent = `Z${z.num} - ${z.name.toUpperCase()}`;
 
   // Flash transition
   const flash = document.getElementById('zoneFlash');
@@ -1519,7 +1526,7 @@ function applyWkBlock() {
   // Current block card
   document.getElementById('wkCurrent').style.background = z.color;
   document.getElementById('wkCurrent').style.border     = `1px solid ${z.color}`;
-  document.getElementById('wkZoneName').textContent = `Z${z.num} · ${z.name.toUpperCase()}`;
+  document.getElementById('wkZoneName').textContent = `Z${z.num} - ${z.name.toUpperCase()}`;
   document.getElementById('wkTimer').textContent    = formatTime(wkSecsLeft);
 
   // Next block
@@ -1527,7 +1534,7 @@ function applyWkBlock() {
   if (next) {
     const nz = ZONES.find(z => z.num === next.zone);
     document.getElementById('wkNextSwatch').style.background = nz.color;
-    document.getElementById('wkNextZone').textContent = `Z${nz.num} · ${nz.name}`;
+    document.getElementById('wkNextZone').textContent = `Z${nz.num} - ${nz.name}`;
     document.getElementById('wkNextDur').textContent  = formatTime(next.secs);
     nxEl.style.display = 'flex';
   } else {
@@ -1544,22 +1551,21 @@ function applyWkBlock() {
 }
 
 function wkTick() {
+  if (!activeWorkout) return;
   wkSecsLeft--;
 
-  // Timer display
   document.getElementById('wkTimer').textContent = formatTime(Math.max(0, wkSecsLeft));
 
-  // Timeline progress fill
-  const block   = activeWorkout.blocks[wkBlockIdx];
-  const elapsed = block.secs - wkSecsLeft;
-  const pct     = Math.min(100, (elapsed / block.secs) * 100).toFixed(1);
-  const tlp = document.getElementById(`wktlp${wkBlockIdx}`);
-  if (tlp) tlp.style.width = pct + '%';
+  const block = activeWorkout.blocks[wkBlockIdx];
+  if (block) {
+    const elapsed = block.secs - wkSecsLeft;
+    const pct     = Math.min(100, (elapsed / block.secs) * 100).toFixed(1);
+    const tlp = document.getElementById(`wktlp${wkBlockIdx}`);
+    if (tlp) tlp.style.width = pct + '%';
+  }
 
-  // Live strip + off-target
   wkUpdateLive();
 
-  // Session history
   if (livePower > 0) powerHistory.push(livePower);
   if (liveHR > 0)    hrHistory.push(liveHR);
   if (liveCad > 0)   cadHistory.push(liveCad);
@@ -1574,30 +1580,33 @@ function wkTick() {
       Math.round(cadHistory.reduce((a,b)=>a+b,0)/cadHistory.length);
 
   if (wkSecsLeft <= 0) {
+    clearInterval(wkInterval);
+    wkInterval = null;
     document.getElementById(`wktl${wkBlockIdx}`)?.classList.add('done');
     wkBlockIdx++;
     if (wkBlockIdx >= activeWorkout.blocks.length) { wkFinish(); return; }
     beep();
     wkSecsLeft = activeWorkout.blocks[wkBlockIdx].secs;
     applyWkBlock();
+    wkInterval = setInterval(wkTick, 1000);
   }
 }
 
 function wkUpdateLive() {
-  // Live strip values
+  if (!activeWorkout) return;
+  const currentBlock = activeWorkout.blocks[wkBlockIdx];
+  if (!currentBlock) return;
   const az = livePower > 0 ? zoneForPower(livePower) : null;
   document.getElementById('wkLivePower').textContent = livePower > 0 ? livePower : '––';
   document.getElementById('wkLivePower').style.color = az ? az.color : 'var(--text)';
   document.getElementById('wkLiveCad').textContent   = liveCad > 0  ? liveCad   : '––';
   document.getElementById('wkLiveHR').textContent    = liveHR > 0   ? liveHR    : '––';
-
-  // Off-target detection
-  const targetZ = activeWorkout.blocks[wkBlockIdx].zone;
+  const targetZ = currentBlock.zone;
   const otEl    = document.getElementById('wkOffTarget');
   const pulse   = document.getElementById('wkPulse');
   if (az && az.num !== targetZ) {
     otEl.style.display  = 'block';
-    otEl.textContent    = `RIDING Z${az.num} · ${az.name.toUpperCase()}`;
+    otEl.textContent    = `RIDING Z${az.num} - ${az.name.toUpperCase()}`;
     pulse.style.display = 'block';
   } else {
     otEl.style.display  = 'none';
@@ -1638,8 +1647,9 @@ function wkReturnToFreeRide() {
   document.getElementById('workoutMode').style.display = 'none';
   document.querySelector('.metrics').style.display     = 'flex';
   document.getElementById('wkStopBtn').style.display   = 'none';
+  document.getElementById('zoneBars').style.display    = '';
   document.documentElement.style.setProperty('--zone-color', '#4a9eff');
-  document.getElementById('logoZone').textContent = 'POWER ZONES · LIVE';
+  document.getElementById('logoZone').textContent = 'POWER ZONES - LIVE';
   lastZoneNum = null;
   updateDisplay();
 }
@@ -1759,7 +1769,7 @@ async function refreshDevices() {
   const select  = document.getElementById('deviceSelect');
   if (!select) return;
   select.innerHTML = devices.length
-    ? devices.map(d => `<option value="${d.id}">${d.name} · ${d.type}</option>`).join('')
+    ? devices.map(d => `<option value="${d.id}">${d.name} - ${d.type}</option>`).join('')
     : '<option value="">No devices — open Spotify on your phone first</option>';
   const saved = localStorage.getItem(SP_DEVICE_KEY);
   if (saved) {

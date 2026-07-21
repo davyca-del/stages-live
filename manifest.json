@@ -1,0 +1,25 @@
+{
+  "name": "Stages Live",
+  "short_name": "Stages Live",
+  "description": "Live power zone display for Stages SC3",
+  "start_url": "/stages-live/",
+  "scope": "/stages-live/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#08080f",
+  "theme_color": "#08080f",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
