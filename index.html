@@ -12,6 +12,7 @@
 <title>POWER ZONES - LIVE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -793,6 +794,12 @@
         <span id="smoothLabel">10S AVG</span>
       </div>
       <button class="wk-stop-btn" id="wkStopBtn" onclick="stopWorkout()">■ STOP</button>
+      <button id="castBtn" onclick="requestCast()" title="Cast to TV"
+        style="background:none;border:1px solid var(--border);border-radius:5px;padding:2px 7px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all 0.2s;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+        </svg>
+      </button>
     </div>
   </header>
 
@@ -1717,7 +1724,57 @@ function wkReturnToFreeRide() {
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────────
-// ── SPOTIFY INTEGRATION ────────────────────────────────────────────────────
+// ── GOOGLE CAST ────────────────────────────────────────────────────────────
+let castAvailable = false;
+
+// Called by Cast SDK when it's ready
+window['__onGCastApiAvailable'] = function(isAvailable) {
+  castAvailable = isAvailable;
+  if (!isAvailable) return;
+
+  const ctx = cast.framework.CastContext.getInstance();
+  ctx.setOptions({
+    receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+    autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
+  });
+
+  ctx.addEventListener(
+    cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
+    (event) => {
+      const btn = document.getElementById('castBtn');
+      const connected =
+        event.sessionState === cast.framework.SessionState.SESSION_STARTED ||
+        event.sessionState === cast.framework.SessionState.SESSION_RESUMED;
+
+      if (btn) {
+        btn.style.color        = connected ? '#2ed573' : 'var(--muted)';
+        btn.style.borderColor  = connected ? '#2ed573' : 'var(--border)';
+      }
+
+      if (connected) {
+        log('Cast session started — routing Spotify to Gym TV');
+        // Trigger Spotify on Gym TV if workout is active
+        if (activeWorkout) spotifyPlay();
+      }
+    }
+  );
+};
+
+async function requestCast() {
+  if (!castAvailable) {
+    alert('Cast not available. Make sure you are using Chrome.');
+    return;
+  }
+  try {
+    await cast.framework.CastContext.getInstance().requestSession();
+  } catch(e) {
+    if (e !== chrome.cast.ErrorCode.CANCEL) {
+      log('Cast error: ' + JSON.stringify(e));
+    }
+  }
+}
+
+
 const SP_CLIENT_ID    = '3b0ae8f7ccd940a297e7ffb3f586662f';
 const SP_REDIRECT     = 'https://davyca-del.github.io/stages-live';
 const SP_SCOPES       = 'user-modify-playback-state user-read-playback-state streaming';
