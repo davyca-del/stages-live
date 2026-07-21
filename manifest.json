@@ -4,7 +4,7 @@
   "description": "Live power zone display for Stages SC3",
   "start_url": "/stages-live/",
   "scope": "/stages-live/",
-  "display": "fullscreen",
+  "display": "standalone",
   "orientation": "any",
   "background_color": "#08080f",
   "theme_color": "#08080f",

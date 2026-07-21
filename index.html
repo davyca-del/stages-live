@@ -648,11 +648,14 @@
         <button onclick="refreshDevices()"
           style="padding:8px 12px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;flex-shrink:0;">↻</button>
       </div>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0;">
-        <input type="checkbox" id="preferTVCheck" onchange="savePreferTV()"
-          style="width:14px;height:14px;accent-color:#1db954;cursor:pointer;flex-shrink:0;">
-        <span style="font-size:9px;letter-spacing:1px;color:var(--muted);">AUTO-SELECT TV / CHROMECAST WHEN CASTING</span>
-      </label>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span style="font-size:9px;letter-spacing:1px;color:var(--muted);flex-shrink:0;">TV NAME</span>
+        <input id="tvNameInput" type="text" placeholder="e.g. Living Room TV"
+          oninput="saveTVName()"
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'DM Mono',monospace;font-size:10px;padding:6px 8px;outline:none;">
+        <span style="font-size:9px;color:var(--muted);flex-shrink:0;">optional</span>
+      </div>
+      <div style="font-size:9px;color:var(--muted);letter-spacing:1px;">Type part of your TV name — Spotify will auto-select it when casting</div>
       <div style="font-size:9px;color:var(--muted);text-align:center;letter-spacing:1px;">Playlist plays when a workout starts - pauses when it ends</div>
     </div>
   </div>
@@ -1844,25 +1847,17 @@ function saveDevice() {
   if (v) localStorage.setItem(SP_DEVICE_KEY, v);
 }
 
-const SP_PREFER_TV_KEY = 'sp_prefer_tv';
+const SP_TV_NAME_KEY = 'sp_tv_name';
+const SP_TV_DEFAULT  = 'Gym TV';
 
-function savePreferTV() {
-  const checked = document.getElementById('preferTVCheck')?.checked;
-  localStorage.setItem(SP_PREFER_TV_KEY, checked ? '1' : '0');
-}
-
-function isTVDevice(name) {
-  return /tv|chromecast|cast|shield|fire|android tv|google home|nest|speaker|sonos/i.test(name);
+function saveTVName() {
+  const val = document.getElementById('tvNameInput')?.value.trim();
+  localStorage.setItem(SP_TV_NAME_KEY, val || SP_TV_DEFAULT);
 }
 
 async function getPreferredDeviceId() {
-  const preferTV = localStorage.getItem(SP_PREFER_TV_KEY) === '1';
-  if (!preferTV) {
-    return document.getElementById('deviceSelect')?.value
-           || localStorage.getItem(SP_DEVICE_KEY);
-  }
+  const tvName = localStorage.getItem(SP_TV_NAME_KEY) || SP_TV_DEFAULT;
 
-  // Refresh device list and look for a TV/Cast device
   const token = await getSpToken();
   if (!token) return localStorage.getItem(SP_DEVICE_KEY);
 
@@ -1872,23 +1867,19 @@ async function getPreferredDeviceId() {
   const data    = await res.json();
   const devices = data.devices || [];
 
-  // Prefer: Cast device > TV > anything
-  const castDevice = devices.find(d => d.type === 'CastVideo' || d.type === 'CastAudio');
-  const tvDevice   = devices.find(d => isTVDevice(d.name));
-  const chosen     = castDevice || tvDevice;
+  log(`Spotify devices: ${devices.map(d => `${d.name} (${d.type})`).join(', ')}`);
 
-  if (chosen) {
-    log(`Auto-selecting TV device: ${chosen.name}`);
-    // Update the dropdown to reflect the selection
-    const select = document.getElementById('deviceSelect');
-    if (select) {
-      const opt = select.querySelector(`option[value="${chosen.id}"]`);
-      if (opt) opt.selected = true;
-    }
-    return chosen.id;
+  const match = devices.find(d =>
+    d.name.toLowerCase().includes(tvName.toLowerCase())
+  );
+
+  if (match) {
+    log(`Auto-selecting: ${match.name}`);
+    return match.id;
   }
 
-  // Fallback to manually selected device
+  // Gym TV not found — fall back to manually selected device
+  log(`"${tvName}" not found in Spotify devices — using default`);
   return document.getElementById('deviceSelect')?.value
          || localStorage.getItem(SP_DEVICE_KEY);
 }
@@ -1962,8 +1953,9 @@ function updateSpotifyUI(connected) {
       const inp = document.getElementById('playlistInput');
       if (inp) inp.value = `spotify:playlist:${saved}`;
     }
-    const preferTV = document.getElementById('preferTVCheck');
-    if (preferTV) preferTV.checked = localStorage.getItem(SP_PREFER_TV_KEY) === '1';
+    const tvName = localStorage.getItem(SP_TV_NAME_KEY) || SP_TV_DEFAULT;
+    const tvInp = document.getElementById('tvNameInput');
+    if (tvInp) tvInp.value = tvName;
   } else {
     btn.textContent = '🎵 CONNECT SPOTIFY';
     btn.onclick     = spotifyLogin;
