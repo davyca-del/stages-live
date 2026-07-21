@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -52,7 +52,7 @@
     height: 100dvh;
     display: flex;
     flex-direction: column;
-    padding: 4px 6px 2px;
+    padding: 4px max(6px, env(safe-area-inset-right)) max(2px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
     gap: 3px;
     overflow: hidden;
   }
@@ -657,6 +657,11 @@
       </div>
       <div style="font-size:9px;color:var(--muted);letter-spacing:1px;">Type part of your TV name — Spotify will auto-select it when casting</div>
       <div style="font-size:9px;color:var(--muted);text-align:center;letter-spacing:1px;">Playlist plays when a workout starts - pauses when it ends</div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:2px 0;">
+        <input type="checkbox" id="shuffleCheck" onchange="saveShuffle()" checked
+          style="width:14px;height:14px;accent-color:#1db954;cursor:pointer;flex-shrink:0;">
+        <span style="font-size:9px;letter-spacing:1px;color:var(--muted);">SHUFFLE PLAYLIST</span>
+      </label>
     </div>
   </div>
 
@@ -1564,7 +1569,6 @@ function activateWorkout(workout) {
   applyWkBlock();
   document.getElementById('zoneBars').style.display = 'none';
   wkInterval = setInterval(wkTick, 1000);
-  spotifyPlay();
 }
 
 function buildWkTimeline() {
@@ -1915,6 +1919,12 @@ async function getPreferredDeviceId() {
 }
 
 
+const SP_SHUFFLE_KEY = 'sp_shuffle';
+
+function saveShuffle() {
+  localStorage.setItem(SP_SHUFFLE_KEY, document.getElementById('shuffleCheck')?.checked ? '1' : '0');
+}
+
 function extractPlaylistId(input) {
   return (input.match(/playlist\/([A-Za-z0-9]+)/)    ||
           input.match(/spotify:playlist:([A-Za-z0-9]+)/) ||
@@ -1947,6 +1957,13 @@ async function spotifyPlay() {
     });
     await new Promise(r => setTimeout(r, 600));
   }
+
+  // Set shuffle state
+  const shuffle = localStorage.getItem(SP_SHUFFLE_KEY) !== '0'; // default on
+  await fetch(`https://api.spotify.com/v1/me/player/shuffle?state=${shuffle}`, {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
 
   const playUrl = deviceId
     ? `https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`
@@ -1986,6 +2003,8 @@ function updateSpotifyUI(connected) {
     const tvName = localStorage.getItem(SP_TV_NAME_KEY) || SP_TV_DEFAULT;
     const tvInp = document.getElementById('tvNameInput');
     if (tvInp) tvInp.value = tvName;
+    const shuffleEl = document.getElementById('shuffleCheck');
+    if (shuffleEl) shuffleEl.checked = localStorage.getItem(SP_SHUFFLE_KEY) !== '0';
   } else {
     btn.textContent = '🎵 CONNECT SPOTIFY';
     btn.onclick     = spotifyLogin;
