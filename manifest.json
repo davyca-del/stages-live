@@ -5,7 +5,7 @@
   "start_url": "/stages-live/",
   "scope": "/stages-live/",
   "display": "fullscreen",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#08080f",
   "theme_color": "#08080f",
   "icons": [

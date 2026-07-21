@@ -305,7 +305,59 @@
     text-align: center;
   }
 
-  /* ── WORKOUT PLAYER ── */
+  /* ── LANDSCAPE LAYOUT ── */
+  @media (orientation: landscape) {
+    /* Setup overlay - two column layout */
+    #overlay {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 10px 20px;
+      overflow-y: auto;
+    }
+    #overlay .overlay-title { width: 100%; text-align: center; font-size: 22px; margin: 0; }
+    #overlay .overlay-sub   { width: 100%; text-align: center; font-size: 9px; }
+    #overlay > * { max-width: 340px; }
+
+    /* Session screen - horizontal metrics */
+    .metrics {
+      flex-direction: row;
+    }
+    .metric-card.power-card { flex: 2; }
+    .metrics-secondary {
+      flex: 1;
+      flex-direction: column;
+    }
+
+    /* Workout player - current block left, live stats right */
+    #workoutMode {
+      flex-direction: row;
+      gap: 6px;
+    }
+    .wk-timeline {
+      display: none; /* no room in landscape - use header zone name instead */
+    }
+    .wk-current {
+      flex: 1;
+    }
+    .wk-right-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 0;
+    }
+    .wk-next  { flex-shrink: 0; }
+    .wk-live-strip {
+      flex: 1;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .wk-live-card { flex: 1; }
+    .wk-live-val  { font-size: clamp(32px, 8vw, 12vh); }
+  }
   #workoutMode {
     flex: 1;
     display: none;
@@ -596,6 +648,11 @@
         <button onclick="refreshDevices()"
           style="padding:8px 12px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;flex-shrink:0;">↻</button>
       </div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0;">
+        <input type="checkbox" id="preferTVCheck" onchange="savePreferTV()"
+          style="width:14px;height:14px;accent-color:#1db954;cursor:pointer;flex-shrink:0;">
+        <span style="font-size:9px;letter-spacing:1px;color:var(--muted);">AUTO-SELECT TV / CHROMECAST WHEN CASTING</span>
+      </label>
       <div style="font-size:9px;color:var(--muted);text-align:center;letter-spacing:1px;">Playlist plays when a workout starts - pauses when it ends</div>
     </div>
   </div>
@@ -775,29 +832,31 @@
       <div class="wk-off-target" id="wkOffTarget"></div>
       <div class="wk-pulse-ring" id="wkPulse"></div>
     </div>
-    <div class="wk-next" id="wkNext">
-      <div class="wk-next-swatch" id="wkNextSwatch"></div>
-      <div>
-        <div class="wk-next-lbl">NEXT</div>
-        <div class="wk-next-zone" id="wkNextZone"></div>
-        <div class="wk-next-dur" id="wkNextDur"></div>
+    <div class="wk-right-col">
+      <div class="wk-next" id="wkNext">
+        <div class="wk-next-swatch" id="wkNextSwatch"></div>
+        <div>
+          <div class="wk-next-lbl">NEXT</div>
+          <div class="wk-next-zone" id="wkNextZone"></div>
+          <div class="wk-next-dur" id="wkNextDur"></div>
+        </div>
       </div>
-    </div>
-    <div class="wk-live-strip">
-      <div class="wk-live-card">
-        <div class="wk-live-lbl">POWER</div>
-        <div class="wk-live-val" id="wkLivePower">––</div>
-        <div class="wk-live-unit">W</div>
-      </div>
-      <div class="wk-live-card">
-        <div class="wk-live-lbl">CADENCE</div>
-        <div class="wk-live-val" id="wkLiveCad">––</div>
-        <div class="wk-live-unit">RPM</div>
-      </div>
-      <div class="wk-live-card">
-        <div class="wk-live-lbl">HEART RATE</div>
-        <div class="wk-live-val" id="wkLiveHR">––</div>
-        <div class="wk-live-unit">BPM</div>
+      <div class="wk-live-strip">
+        <div class="wk-live-card">
+          <div class="wk-live-lbl">POWER</div>
+          <div class="wk-live-val" id="wkLivePower">––</div>
+          <div class="wk-live-unit">W</div>
+        </div>
+        <div class="wk-live-card">
+          <div class="wk-live-lbl">CADENCE</div>
+          <div class="wk-live-val" id="wkLiveCad">––</div>
+          <div class="wk-live-unit">RPM</div>
+        </div>
+        <div class="wk-live-card">
+          <div class="wk-live-lbl">HEART RATE</div>
+          <div class="wk-live-val" id="wkLiveHR">––</div>
+          <div class="wk-live-unit">BPM</div>
+        </div>
       </div>
     </div>
   </div>
@@ -1785,7 +1844,56 @@ function saveDevice() {
   if (v) localStorage.setItem(SP_DEVICE_KEY, v);
 }
 
-// ── Playlist ───────────────────────────────────────────────────────────────
+const SP_PREFER_TV_KEY = 'sp_prefer_tv';
+
+function savePreferTV() {
+  const checked = document.getElementById('preferTVCheck')?.checked;
+  localStorage.setItem(SP_PREFER_TV_KEY, checked ? '1' : '0');
+}
+
+function isTVDevice(name) {
+  return /tv|chromecast|cast|shield|fire|android tv|google home|nest|speaker|sonos/i.test(name);
+}
+
+async function getPreferredDeviceId() {
+  const preferTV = localStorage.getItem(SP_PREFER_TV_KEY) === '1';
+  if (!preferTV) {
+    return document.getElementById('deviceSelect')?.value
+           || localStorage.getItem(SP_DEVICE_KEY);
+  }
+
+  // Refresh device list and look for a TV/Cast device
+  const token = await getSpToken();
+  if (!token) return localStorage.getItem(SP_DEVICE_KEY);
+
+  const res     = await fetch('https://api.spotify.com/v1/me/player/devices', {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  const data    = await res.json();
+  const devices = data.devices || [];
+
+  // Prefer: Cast device > TV > anything
+  const castDevice = devices.find(d => d.type === 'CastVideo' || d.type === 'CastAudio');
+  const tvDevice   = devices.find(d => isTVDevice(d.name));
+  const chosen     = castDevice || tvDevice;
+
+  if (chosen) {
+    log(`Auto-selecting TV device: ${chosen.name}`);
+    // Update the dropdown to reflect the selection
+    const select = document.getElementById('deviceSelect');
+    if (select) {
+      const opt = select.querySelector(`option[value="${chosen.id}"]`);
+      if (opt) opt.selected = true;
+    }
+    return chosen.id;
+  }
+
+  // Fallback to manually selected device
+  return document.getElementById('deviceSelect')?.value
+         || localStorage.getItem(SP_DEVICE_KEY);
+}
+
+
 function extractPlaylistId(input) {
   return (input.match(/playlist\/([A-Za-z0-9]+)/)    ||
           input.match(/spotify:playlist:([A-Za-z0-9]+)/) ||
@@ -1806,9 +1914,10 @@ async function spotifyPlay() {
   const token      = await getSpToken();
   const playlistId = localStorage.getItem(SP_PLAYLIST_KEY);
   if (!token || !playlistId) return;
-  const deviceId = document.getElementById('deviceSelect')?.value
-                   || localStorage.getItem(SP_DEVICE_KEY);
-  // Transfer playback to chosen device
+
+  // Get preferred device — auto-selects TV/Chromecast if toggle is on
+  const deviceId = await getPreferredDeviceId();
+
   if (deviceId) {
     await fetch('https://api.spotify.com/v1/me/player', {
       method: 'PUT',
@@ -1817,10 +1926,11 @@ async function spotifyPlay() {
     });
     await new Promise(r => setTimeout(r, 600));
   }
-  // Start playlist
+
   const playUrl = deviceId
     ? `https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`
     : 'https://api.spotify.com/v1/me/player/play';
+
   await fetch(playUrl, {
     method: 'PUT',
     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -1852,6 +1962,8 @@ function updateSpotifyUI(connected) {
       const inp = document.getElementById('playlistInput');
       if (inp) inp.value = `spotify:playlist:${saved}`;
     }
+    const preferTV = document.getElementById('preferTVCheck');
+    if (preferTV) preferTV.checked = localStorage.getItem(SP_PREFER_TV_KEY) === '1';
   } else {
     btn.textContent = '🎵 CONNECT SPOTIFY';
     btn.onclick     = spotifyLogin;
