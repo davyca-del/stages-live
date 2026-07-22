@@ -1931,19 +1931,47 @@ async function spotifyPlay() {
   const playlistId = localStorage.getItem(SP_PLAYLIST_KEY);
   if (!token || !playlistId) return;
 
-  // Set shuffle state
+  // Find available devices — target phone specifically
+  const devRes  = await fetch('https://api.spotify.com/v1/me/player/devices', {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  const devData  = await devRes.json();
+  const devices  = devData.devices || [];
+  log(`Spotify devices: ${devices.map(d=>`${d.name}(${d.type})`).join(', ')}`);
+
+  // Prefer Smartphone type, then Computer, then anything
+  const phone = devices.find(d => d.type === 'Smartphone')
+             || devices.find(d => d.type === 'Computer')
+             || devices[0];
+
+  if (!phone) {
+    log('No Spotify device found — open Spotify on your phone first');
+    alert('Open Spotify on your phone first, then try again.');
+    return;
+  }
+
+  // Transfer playback to phone
+  await fetch('https://api.spotify.com/v1/me/player', {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ device_ids: [phone.id], play: false })
+  });
+  await new Promise(r => setTimeout(r, 600));
+
+  // Set shuffle
   const shuffle = localStorage.getItem(SP_SHUFFLE_KEY) !== '0';
-  await fetch(`https://api.spotify.com/v1/me/player/shuffle?state=${shuffle}`, {
+  await fetch(`https://api.spotify.com/v1/me/player/shuffle?state=${shuffle}&device_id=${phone.id}`, {
     method: 'PUT',
     headers: { 'Authorization': `Bearer ${token}` }
   });
 
-  // Play on phone — audio follows the screen cast to TV automatically
-  await fetch('https://api.spotify.com/v1/me/player/play', {
+  // Start playlist on phone
+  const playRes = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${phone.id}`, {
     method: 'PUT',
     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ context_uri: `spotify:playlist:${playlistId}` })
   });
+  log(`Spotify play response: ${playRes.status} on ${phone.name}`);
 }
 
 async function spotifyPause() {
