@@ -119,41 +119,20 @@ nav {
 
 .player-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 8px; gap: 8px; min-height: 0; }
 
-/* Zone-band bar chart */
-.profile-wrap { flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; }
-.profile-readout { display: flex; justify-content: space-between; font-size: 10px; letter-spacing: 1px; color: #fff; }
-.profile-readout b { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 2px; font-weight: 400; margin-left: 4px; }
-#profileCanvas { width: 100%; height: 64px; display: block; border-radius: 6px; background: var(--surface); }
-
-/* Current block */
-.current-block {
-  flex: 2; border-radius: 14px; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; position: relative; overflow: hidden;
-  min-height: 0;
-}
-.cb-label { font-size: 9px; letter-spacing: 3px; color: rgba(255,255,255,0.7); }
-.cb-zone { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 4px; color: #fff; }
-.cb-timer { font-family: 'Bebas Neue', sans-serif; font-size: clamp(80px, 25vh, 30vh); line-height: 0.85; color: #fff; letter-spacing: 4px; }
-.cb-timer-label { font-size: 10px; letter-spacing: 3px; color: rgba(255,255,255,0.7); }
-
-/* Next block */
-.next-block {
-  flex: 1; border-radius: 10px; display: flex; align-items: center;
-  padding: 10px 16px; gap: 14px; opacity: 0.75; min-height: 0;
-  background: var(--surface); border: 1px solid var(--border);
-}
-.nb-swatch { width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0; }
-.nb-info { flex: 1; }
-.nb-label { font-size: 9px; letter-spacing: 2px; color: var(--muted); }
-.nb-zone { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 3px; }
-.nb-dur { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+/* Zone power-profile chart — now the dominant element */
+.profile-wrap { flex: 1; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+.profile-caption { display: flex; justify-content: space-between; align-items: baseline; flex-shrink: 0; }
+.profile-caption span { font-family: 'Bebas Neue', sans-serif; letter-spacing: 3px; color: #fff; }
+#capZone { font-size: 22px; }
+#capRemain { font-size: 22px; }
+#profileCanvas { width: 100%; flex: 1; min-height: 0; display: block; border-radius: 8px; background: var(--surface); }
 
 /* Live metrics strip */
 .live-strip { display: flex; gap: 6px; flex-shrink: 0; }
-.ls-card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px; text-align: center; }
-.ls-label { font-size: 8px; letter-spacing: 2px; color: var(--muted); }
-.ls-val { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; }
-.ls-unit { font-size: 9px; color: var(--muted); }
+.ls-card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 6px; text-align: center; }
+.ls-label { font-size: 9px; letter-spacing: 2px; color: var(--muted); }
+.ls-val { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px, 11vh, 72px); line-height: 0.95; letter-spacing: 2px; color: #fff; }
+.ls-unit { font-size: 10px; color: var(--muted); }
 
 /* Finish screen */
 #finishScreen { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 110; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 24px; }
@@ -233,26 +212,11 @@ nav {
   </div>
   <div class="player-body">
     <div class="profile-wrap">
-      <div class="profile-readout">
-        <span>CURRENT<b id="rCur">0:00</b></span>
-        <span>NEXT<b id="rNext">0:00</b></span>
-        <span>TOTAL<b id="rTot">0:00</b></span>
+      <div class="profile-caption">
+        <span id="capZone">–</span>
+        <span id="capRemain">0:00</span>
       </div>
       <canvas id="profileCanvas"></canvas>
-    </div>
-    <div class="current-block" id="currentBlock">
-      <div class="cb-label">CURRENT BLOCK</div>
-      <div class="cb-zone" id="cbZone">–</div>
-      <div class="cb-timer" id="cbTimer">0:00</div>
-      <div class="cb-timer-label">REMAINING</div>
-    </div>
-    <div class="next-block" id="nextBlock">
-      <div class="nb-swatch" id="nbSwatch"></div>
-      <div class="nb-info">
-        <div class="nb-label">NEXT</div>
-        <div class="nb-zone" id="nbZone">–</div>
-        <div class="nb-dur" id="nbDur">–</div>
-      </div>
     </div>
     <div class="live-strip">
       <div class="ls-card">
@@ -504,6 +468,15 @@ function zoneForPower(w) {
   return ZONES[ZONES.length - 1].num;
 }
 
+// Midpoint target watts for a zone number (bar height driver).
+// Z7 is open-ended (151–999%); cap its "high" at 175% so the bar stays sane.
+function zoneMidWatts(zoneNum) {
+  const z = ZONES.find(z => z.num === zoneNum);
+  const hi = z.pHigh === 999 ? 175 : z.pHigh;
+  const midPct = (z.pLow + hi) / 2;
+  return (midPct / 100) * liveFTP;
+}
+
 function rideWorkout(id) {
   const w = loadWorkouts().find(w => w.id === id);
   if (!w || !w.blocks.length) return;
@@ -524,7 +497,6 @@ function rideWorkout(id) {
   livePollInterval = setInterval(pollLive, 500);
 }
 
-const MAX_ZONE_LEVEL = 7;
 let profileCanvas, profileCtx;
 
 function sizeProfileCanvas() {
@@ -555,13 +527,16 @@ function renderProfile() {
   const elapsed = totalElapsed();
   const gap = 1;
 
-  // Bars: height by zone band (level/7), width by duration
+  // Height scale: tallest block midpoint watts + 10% headroom
+  const maxW = Math.max(...playerWorkout.blocks.map(b => zoneMidWatts(b.zone))) * 1.1;
+
+  // Bars: HEIGHT BY POWER (zone midpoint watts), width by duration
   let t = 0;
   playerWorkout.blocks.forEach((b, i) => {
     const z = ZONES.find(z => z.num === b.zone);
     const x = (t / total) * W;
     const w = (b.secs / total) * W;
-    const h = (b.zone / MAX_ZONE_LEVEL) * H;
+    const h = (zoneMidWatts(b.zone) / maxW) * H;
     profileCtx.globalAlpha = i < playerBlockIdx ? 0.3 : 1;   // dim completed blocks
     profileCtx.fillStyle = z.color;
     profileCtx.fillRect(x, H - h, Math.max(w - gap, 1), h);
@@ -578,23 +553,24 @@ function renderProfile() {
   profileCtx.lineTo(cx, H);
   profileCtx.stroke();
 
-  // Readout
-  const nextBlk = playerWorkout.blocks[playerBlockIdx + 1];
-  document.getElementById('rCur').textContent = fmtSecs(playerSecsLeft);
-  document.getElementById('rNext').textContent = nextBlk ? fmtSecs(nextBlk.secs) : '—';
-  document.getElementById('rTot').textContent = fmtSecs(total - elapsed);
+  // Caption: current zone name + remaining time in this block
+  const cur = playerWorkout.blocks[playerBlockIdx];
+  if (cur) {
+    const cz = ZONES.find(z => z.num === cur.zone);
+    const cap = document.getElementById('capZone');
+    cap.textContent = `Z${cz.num} · ${cz.short.toUpperCase()}`;
+    cap.style.color = cz.color;
+    document.getElementById('capRemain').textContent = fmtSecs(playerSecsLeft);
+  }
 }
 
 function playerTick() {
   playerSecsLeft--;
 
-  // Update current block timer
-  document.getElementById('cbTimer').textContent = fmtSecs(playerSecsLeft);
-
-  // Redraw bar chart (advances cursor, updates readout)
+  // Redraw chart (advances cursor, updates caption zone + remaining)
   renderProfile();
 
-  // Check off-target
+  // Update live power colour by zone
   updateOffTarget();
 
   if (playerSecsLeft <= 0) {
@@ -614,28 +590,7 @@ function playerTick() {
 }
 
 function renderPlayerBlock() {
-  const block = playerWorkout.blocks[playerBlockIdx];
-  const z = ZONES.find(z => z.num === block.zone);
-  const next = playerWorkout.blocks[playerBlockIdx + 1];
-
-  // Current block
-  const cb = document.getElementById('currentBlock');
-  cb.style.background = z.color;
-  cb.style.border = `1px solid ${z.color}`;
-  document.getElementById('cbZone').textContent = `Z${z.num} · ${z.name.toUpperCase()}`;
-  document.getElementById('cbTimer').textContent = fmtSecs(playerSecsLeft);
-
-  // Next block
-  if (next) {
-    const nz = ZONES.find(z => z.num === next.zone);
-    document.getElementById('nbSwatch').style.background = nz.color;
-    document.getElementById('nbZone').textContent = `Z${nz.num} · ${nz.name}`;
-    document.getElementById('nbDur').textContent = fmtSecs(next.secs);
-    document.getElementById('nextBlock').style.display = 'flex';
-  } else {
-    document.getElementById('nextBlock').style.display = 'none';
-  }
-
+  // Block visuals are all driven by the chart + caption now
   renderProfile();
 }
 
