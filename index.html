@@ -1545,6 +1545,7 @@ function activateWorkout(workout) {
   activeWorkout = workout;
   wkBlockIdx    = 0;
   wkSecsLeft    = workout.blocks[0].secs;
+  log(`activateWorkout: "${workout.name}" — ${workout.blocks.length} blocks`);
 
   document.querySelector('.metrics').style.display = 'none';
   document.getElementById('workoutMode').style.display = 'flex';
@@ -1642,11 +1643,19 @@ function wkTick() {
     wkInterval = null;
     document.getElementById(`wktl${wkBlockIdx}`)?.classList.add('done');
     wkBlockIdx++;
+    log(`Block transition: idx now ${wkBlockIdx} of ${activeWorkout.blocks.length}`);
     if (wkBlockIdx >= activeWorkout.blocks.length) { wkFinish(); return; }
     beep();
     wkSecsLeft = activeWorkout.blocks[wkBlockIdx].secs;
-    applyWkBlock();
+    try {
+      applyWkBlock();
+    } catch(e) {
+      log(`applyWkBlock error: ${e.message} — continuing anyway`);
+      // Even if display update fails, keep the timer running
+      document.getElementById('wkTimer').textContent = formatTime(wkSecsLeft);
+    }
     wkInterval = setInterval(wkTick, 1000);
+    log(`Interval restarted for block ${wkBlockIdx}`);
   }
 }
 
