@@ -119,12 +119,11 @@ nav {
 
 .player-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 8px; gap: 8px; min-height: 0; }
 
-/* Timeline ribbon */
-.timeline { display: flex; gap: 2px; height: 28px; border-radius: 6px; overflow: hidden; flex-shrink: 0; }
-.tl-seg { height: 100%; position: relative; transition: opacity 0.3s; min-width: 4px; }
-.tl-seg.done { opacity: 0.25; }
-.tl-seg.current { outline: 2px solid #fff; outline-offset: -2px; }
-.tl-progress { position: absolute; top: 0; left: 0; height: 100%; background: rgba(0,0,0,0.4); transition: width 1s linear; }
+/* Zone-band bar chart */
+.profile-wrap { flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; }
+.profile-readout { display: flex; justify-content: space-between; font-size: 10px; letter-spacing: 1px; color: #fff; }
+.profile-readout b { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 2px; font-weight: 400; margin-left: 4px; }
+#profileCanvas { width: 100%; height: 64px; display: block; border-radius: 6px; background: var(--surface); }
 
 /* Current block */
 .current-block {
@@ -238,7 +237,14 @@ nav {
     <button class="player-stop" onclick="stopWorkout()">■ STOP</button>
   </div>
   <div class="player-body">
-    <div class="timeline" id="timeline"></div>
+    <div class="profile-wrap">
+      <div class="profile-readout">
+        <span>CURRENT<b id="rCur">0:00</b></span>
+        <span>NEXT<b id="rNext">0:00</b></span>
+        <span>TOTAL<b id="rTot">0:00</b></span>
+      </div>
+      <canvas id="profileCanvas"></canvas>
+    </div>
     <div class="current-block" id="currentBlock">
       <div class="cb-label">CURRENT BLOCK</div>
       <div class="cb-zone" id="cbZone">–</div>
@@ -285,13 +291,13 @@ nav {
 <script>
 // ── ZONES ─────────────────────────────────────────────────────────────────
 const ZONES = [
-  { num:1, name:'Active Recovery', short:'Recovery',  color:'#4a9eff' },
-  { num:2, name:'Endurance',       short:'Endurance', color:'#2ed573' },
-  { num:3, name:'Tempo',           short:'Tempo',     color:'#ffe000' },
-  { num:4, name:'Threshold',       short:'Threshold', color:'#ffa502' },
-  { num:5, name:'VO2 Max',         short:'VO2 Max',   color:'#ff4757' },
-  { num:6, name:'Anaerobic',       short:'Anaerobic', color:'#8b1a1a' },
-  { num:7, name:'Neuromuscular',   short:'Neuro',     color:'#a55eea' },
+  { num:1, name:'Active Recovery', short:'Recovery',  pLow:0,   pHigh:55,  color:'#4a9eff' },
+  { num:2, name:'Endurance',       short:'Endurance', pLow:56,  pHigh:75,  color:'#2ed573' },
+  { num:3, name:'Tempo',           short:'Tempo',     pLow:76,  pHigh:90,  color:'#ffe000' },
+  { num:4, name:'Threshold',       short:'Threshold', pLow:91,  pHigh:105, color:'#ffa502' },
+  { num:5, name:'VO2 Max',         short:'VO2 Max',   pLow:106, pHigh:120, color:'#ff4757' },
+  { num:6, name:'Anaerobic',       short:'Anaerobic', pLow:121, pHigh:150, color:'#8b1a1a' },
+  { num:7, name:'Neuromuscular',   short:'Neuro',     pLow:151, pHigh:999, color:'#a55eea' },
 ];
 
 const STORE_KEY = 'stages_workouts_v1';
@@ -488,10 +494,22 @@ let playerWorkout = null;
 let playerBlockIdx = 0;
 let playerSecsLeft = 0;
 let playerInterval = null;
+let livePollInterval = null;
 let playerStartTime = 0;
 
 // Live data from stages-live via localStorage bridge
 let livePower = 0, liveCad = 0, liveHR = 0;
+let liveFTP = 200;  // bridged from stages-live; falls back to 200
+
+// Map live watts to a zone number using % of FTP (mirrors stages-live)
+function zoneForPower(w) {
+  if (!w || w <= 0) return null;
+  const pct = (w / liveFTP) * 100;
+  for (const z of ZONES) {
+    if (pct >= z.pLow && (z.pHigh === 999 || pct <= z.pHigh)) return z.num;
+  }
+  return ZONES[ZONES.length - 1].num;
+}
 
 function rideWorkout(id) {
   const w = loadWorkouts().find(w => w.id === id);
@@ -504,22 +522,74 @@ function rideWorkout(id) {
   document.getElementById('playerTitle').textContent = w.name.toUpperCase();
   document.getElementById('playerScreen').classList.add('active');
 
-  buildTimeline();
+  profileCanvas = document.getElementById('profileCanvas');
+  profileCtx = profileCanvas.getContext('2d');
+  renderProfile();
   renderPlayerBlock();
   playerInterval = setInterval(playerTick, 1000);
   // Poll live data
-  setInterval(pollLive, 500);
+  livePollInterval = setInterval(pollLive, 500);
 }
 
-function buildTimeline() {
+const MAX_ZONE_LEVEL = 7;
+let profileCanvas, profileCtx;
+
+function sizeProfileCanvas() {
+  const cssW = profileCanvas.clientWidth;
+  const cssH = profileCanvas.clientHeight;
+  const dpr = window.devicePixelRatio || 1;
+  profileCanvas.width  = Math.round(cssW * dpr);
+  profileCanvas.height = Math.round(cssH * dpr);
+  profileCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { W: cssW, H: cssH };
+}
+
+// Elapsed seconds across the whole workout, given current block + secs left
+function totalElapsed() {
+  let acc = 0;
+  for (let i = 0; i < playerBlockIdx; i++) acc += playerWorkout.blocks[i].secs;
+  const cur = playerWorkout.blocks[playerBlockIdx];
+  if (cur) acc += (cur.secs - playerSecsLeft);
+  return acc;
+}
+
+function renderProfile() {
+  if (!profileCanvas) return;
+  const { W, H } = sizeProfileCanvas();
+  profileCtx.clearRect(0, 0, W, H);
+
   const total = playerWorkout.blocks.reduce((s, b) => s + b.secs, 0);
-  document.getElementById('timeline').innerHTML = playerWorkout.blocks.map((b, i) => {
+  const elapsed = totalElapsed();
+  const gap = 1;
+
+  // Bars: height by zone band (level/7), width by duration
+  let t = 0;
+  playerWorkout.blocks.forEach((b, i) => {
     const z = ZONES.find(z => z.num === b.zone);
-    const pct = (b.secs / total * 100).toFixed(1);
-    return `<div class="tl-seg" id="tl${i}" style="background:${z.color};width:${pct}%">
-      <div class="tl-progress" id="tlp${i}" style="width:0%"></div>
-    </div>`;
-  }).join('');
+    const x = (t / total) * W;
+    const w = (b.secs / total) * W;
+    const h = (b.zone / MAX_ZONE_LEVEL) * H;
+    profileCtx.globalAlpha = i < playerBlockIdx ? 0.3 : 1;   // dim completed blocks
+    profileCtx.fillStyle = z.color;
+    profileCtx.fillRect(x, H - h, Math.max(w - gap, 1), h);
+    t += b.secs;
+  });
+  profileCtx.globalAlpha = 1;
+
+  // Live cursor
+  const cx = (elapsed / total) * W;
+  profileCtx.strokeStyle = '#fff';
+  profileCtx.lineWidth = 2;
+  profileCtx.beginPath();
+  profileCtx.moveTo(cx, 0);
+  profileCtx.lineTo(cx, H);
+  profileCtx.stroke();
+
+  // Readout
+  const nextBlk = playerWorkout.blocks[playerBlockIdx + 1];
+  document.getElementById('rCur').textContent = fmtSecs(playerSecsLeft);
+  document.getElementById('rNext').textContent = nextBlk ? fmtSecs(nextBlk.secs) : '—';
+  document.getElementById('rTot').textContent = fmtSecs(total - elapsed);
 }
 
 function playerTick() {
@@ -528,19 +598,13 @@ function playerTick() {
   // Update current block timer
   document.getElementById('cbTimer').textContent = fmtSecs(playerSecsLeft);
 
-  // Update timeline progress bar for current block
-  const block = playerWorkout.blocks[playerBlockIdx];
-  const elapsed = block.secs - playerSecsLeft;
-  const pct = (elapsed / block.secs * 100).toFixed(1);
-  const tlp = document.getElementById(`tlp${playerBlockIdx}`);
-  if (tlp) tlp.style.width = pct + '%';
+  // Redraw bar chart (advances cursor, updates readout)
+  renderProfile();
 
   // Check off-target
   updateOffTarget();
 
   if (playerSecsLeft <= 0) {
-    // Mark block done
-    document.getElementById(`tl${playerBlockIdx}`)?.classList.add('done');
     playerBlockIdx++;
 
     if (playerBlockIdx >= playerWorkout.blocks.length) {
@@ -579,22 +643,44 @@ function renderPlayerBlock() {
     document.getElementById('nextBlock').style.display = 'none';
   }
 
-  // Mark current in timeline
-  playerWorkout.blocks.forEach((_, i) => {
-    document.getElementById(`tl${i}`)?.classList.toggle('current', i === playerBlockIdx);
-  });
+  renderProfile();
 }
 
 function updateOffTarget() {
-  // This will be populated when live data is available
   const block = playerWorkout.blocks[playerBlockIdx];
   const targetZ = block.zone;
-  // We'll get actualZ from livePower when the session page bridges data
   const otEl = document.getElementById('offTarget');
   const pulse = document.getElementById('cbPulse');
-  // For now hide — real data comes via postMessage or localStorage bridge
-  otEl.style.display = 'none';
-  pulse.style.display = 'none';
+
+  const actualZ = zoneForPower(livePower);
+
+  // No live power yet — hide indicator and pulse
+  if (actualZ === null) {
+    otEl.style.display = 'none';
+    pulse.style.display = 'none';
+    return;
+  }
+
+  if (actualZ === targetZ) {
+    // On target
+    otEl.textContent = '● ON TARGET';
+    otEl.style.color = '#fff';
+    otEl.style.background = 'rgba(46,213,115,0.35)';
+    otEl.style.display = 'block';
+    pulse.style.display = 'none';
+  } else {
+    // Off target — flash pulse ring, show direction + how far off
+    const diff = actualZ - targetZ;
+    const dir = diff > 0 ? 'TOO HARD' : 'EASE UP';
+    const arrow = diff > 0 ? '▲' : '▼';
+    const zones = Math.abs(diff);
+    otEl.textContent = `${arrow} ${dir} · Z${actualZ} (${zones} ZONE${zones > 1 ? 'S' : ''} ${diff > 0 ? 'OVER' : 'UNDER'})`;
+    otEl.style.color = '#fff';
+    otEl.style.background = diff > 0 ? 'rgba(255,71,87,0.55)' : 'rgba(74,158,255,0.55)';
+    otEl.style.display = 'block';
+    pulse.style.borderColor = diff > 0 ? 'rgba(255,71,87,0.8)' : 'rgba(74,158,255,0.8)';
+    pulse.style.display = 'block';
+  }
 }
 
 function pollLive() {
@@ -603,14 +689,20 @@ function pollLive() {
     livePower = data.power || 0;
     liveCad   = data.cad   || 0;
     liveHR    = data.hr    || 0;
+    if (data.ftp) liveFTP = data.ftp;
     document.getElementById('lsPower').textContent = livePower || '––';
     document.getElementById('lsCad').textContent   = liveCad   || '––';
     document.getElementById('lsHR').textContent    = liveHR    || '––';
+    // React to power changes between ticks
+    if (playerWorkout && document.getElementById('playerScreen').classList.contains('active')) {
+      updateOffTarget();
+    }
   } catch {}
 }
 
 function finishWorkout() {
   clearInterval(playerInterval);
+  clearInterval(livePollInterval);
   document.getElementById('playerScreen').classList.remove('active');
   const total = playerWorkout.blocks.reduce((s, b) => s + b.secs, 0);
   document.getElementById('finishSummary').textContent =
@@ -621,6 +713,7 @@ function finishWorkout() {
 function stopWorkout() {
   if (!confirm('Stop the workout?')) return;
   clearInterval(playerInterval);
+  clearInterval(livePollInterval);
   document.getElementById('playerScreen').classList.remove('active');
 }
 
@@ -648,6 +741,13 @@ function fmtSecs(s) {
   const ss = s % 60;
   return `${m}:${String(ss).padStart(2,'0')}`;
 }
+
+// Redraw bar chart on resize/orientation change while riding
+window.addEventListener('resize', () => {
+  if (profileCanvas && document.getElementById('playerScreen').classList.contains('active')) {
+    renderProfile();
+  }
+});
 
 // ── INIT ───────────────────────────────────────────────────────────────────
 renderZonePicker();

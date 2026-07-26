@@ -963,7 +963,7 @@ function updateDisplay() {
   // Bridge live data to workout player / localStorage
   try {
     localStorage.setItem('stages_live_workout', JSON.stringify({
-      power: livePower, cad: liveCad, hr: liveHR, ts: Date.now()
+      power: livePower, cad: liveCad, hr: liveHR, ftp: getFTP(), ts: Date.now()
     }));
   } catch {}
 
