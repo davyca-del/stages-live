@@ -1545,7 +1545,7 @@ function activateWorkout(workout) {
   activeWorkout = workout;
   wkBlockIdx    = 0;
   wkSecsLeft    = workout.blocks[0].secs;
-  log(`activateWorkout: "${workout.name}" — ${workout.blocks.length} blocks`);
+  log(`activateWorkout: "${workout.name}" — ${workout.blocks.length} blocks, block[0] secs=${wkSecsLeft}`);
 
   document.querySelector('.metrics').style.display = 'none';
   document.getElementById('workoutMode').style.display = 'flex';
@@ -1639,6 +1639,7 @@ function wkTick() {
       Math.round(cadHistory.reduce((a,b)=>a+b,0)/cadHistory.length);
 
   if (wkSecsLeft <= 0) {
+    log(`wkSecsLeft hit 0 — transitioning from block ${wkBlockIdx}, total blocks: ${activeWorkout.blocks.length}`);
     clearInterval(wkInterval);
     wkInterval = null;
     document.getElementById(`wktl${wkBlockIdx}`)?.classList.add('done');
@@ -2038,6 +2039,7 @@ function init() {
     document.getElementById('noBtWarn').style.display = 'block';
   }
   renderZoneBars();
+  renderWorkoutPicker();
   initSpotify();
 
   // Sync FTP inputs
