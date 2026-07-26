@@ -52,7 +52,7 @@
     height: 100dvh;
     display: flex;
     flex-direction: column;
-    padding: 4px max(6px, env(safe-area-inset-right)) max(2px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+    padding: 4px 6px max(2px, env(safe-area-inset-bottom)) 6px;
     gap: 3px;
     overflow: hidden;
   }
@@ -354,10 +354,9 @@
     flex: 1; display: flex; flex-direction: column; gap: 6px; min-height: 0;
   }
   .wk-caption {
-    display: flex; justify-content: space-between; align-items: baseline; flex-shrink: 0;
+    display: flex; justify-content: flex-end; align-items: baseline; flex-shrink: 0;
   }
   .wk-caption span { font-family: 'Bebas Neue', sans-serif; letter-spacing: 3px; color: #fff; }
-  #wkCapZone   { font-size: clamp(18px, 4.5vw, 26px); }
   #wkCapRemain { font-size: clamp(18px, 4.5vw, 26px); }
   #wkCanvas {
     width: 100%; flex: 1; min-height: 0; display: block;
@@ -764,7 +763,6 @@
   <div id="workoutMode">
     <div class="wk-profile-wrap">
       <div class="wk-caption">
-        <span id="wkCapZone">––</span>
         <span id="wkCapRemain">0:00</span>
       </div>
       <canvas id="wkCanvas"></canvas>
@@ -1573,13 +1571,9 @@ function renderWkProfile() {
   wkCtx.lineTo(cx, H);
   wkCtx.stroke();
 
-  // Caption: current zone (coloured) + remaining in block
+  // Caption: remaining time in current block (zone name shown in header)
   const cur = activeWorkout.blocks[wkBlockIdx];
   if (cur) {
-    const cz = ZONES.find(z => z.num === cur.zone);
-    const cap = document.getElementById('wkCapZone');
-    cap.textContent = `Z${cz.num} - ${cz.name.toUpperCase()}`;
-    cap.style.color = cz.color;
     document.getElementById('wkCapRemain').textContent = formatTime(Math.max(0, wkSecsLeft));
   }
 }
@@ -1664,9 +1658,6 @@ function wkFinish() {
   setTimeout(beep, 300);
   spotifyPause();
 
-  const cap = document.getElementById('wkCapZone');
-  cap.textContent = 'WORKOUT COMPLETE';
-  cap.style.color = '#2ed573';
   document.getElementById('wkCapRemain').textContent = '✓';
   document.documentElement.style.setProperty('--zone-color', '#2ed573');
   document.getElementById('logoZone').textContent = 'WORKOUT COMPLETE';
