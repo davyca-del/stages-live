@@ -331,106 +331,47 @@
       flex-direction: column;
     }
 
-    /* Workout player - current block left, live stats right */
+    /* Workout player - chart on top, live stats below */
     #workoutMode {
-      flex-direction: row;
-      gap: 6px;
-    }
-    .wk-timeline {
-      display: none; /* no room in landscape - use header zone name instead */
-    }
-    .wk-current {
-      flex: 1;
-    }
-    .wk-right-col {
-      flex: 1;
-      display: flex;
       flex-direction: column;
       gap: 6px;
-      min-height: 0;
     }
-    .wk-next  { flex-shrink: 0; }
     .wk-live-strip {
-      flex: 1;
       flex-direction: row;
-      min-height: 0;
+      flex-shrink: 0;
     }
     .wk-live-card { flex: 1; min-height: 0; }
-    .wk-live-val  { font-size: clamp(28px, 6vw, 10vh); }
+    .wk-live-val  { font-size: clamp(40px, 9vw, 14vh); }
   }
   #workoutMode {
     flex: 1;
     display: none;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
     min-height: 0;
   }
-  .wk-timeline {
-    display: flex;
-    gap: 2px;
-    height: 18px;
-    border-radius: 5px;
-    overflow: hidden;
-    flex-shrink: 0;
+  .wk-profile-wrap {
+    flex: 1; display: flex; flex-direction: column; gap: 6px; min-height: 0;
   }
-  .wk-seg {
-    height: 100%;
-    position: relative;
-    min-width: 3px;
-    transition: opacity 0.4s;
+  .wk-caption {
+    display: flex; justify-content: space-between; align-items: baseline; flex-shrink: 0;
   }
-  .wk-seg.done { opacity: 0.2; }
-  .wk-seg.current { outline: 2px solid rgba(255,255,255,0.85); outline-offset: -2px; }
-  .wk-seg-prog {
-    position: absolute;
-    top: 0; left: 0; height: 100%;
-    background: rgba(0,0,0,0.35);
-    transition: width 1s linear;
+  .wk-caption span { font-family: 'Bebas Neue', sans-serif; letter-spacing: 3px; color: #fff; }
+  #wkCapZone   { font-size: clamp(18px, 4.5vw, 26px); }
+  #wkCapRemain { font-size: clamp(18px, 4.5vw, 26px); }
+  #wkCanvas {
+    width: 100%; flex: 1; min-height: 0; display: block;
+    border-radius: 8px; background: var(--surface);
   }
-  .wk-current {
-    flex-shrink: 0;
-    border-radius: 10px;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 14px;
-    position: relative;
-    overflow: hidden;
-    gap: 8px;
-  }
-  .wk-cur-left { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
-  .wk-cur-label  { font-size: 7px; letter-spacing: 2px; color: rgba(255,255,255,0.65); }
-  .wk-zone-name  { font-family: 'Bebas Neue', sans-serif; font-size: clamp(16px,4.5vw,24px); letter-spacing: 3px; color: #fff; line-height: 1; }
-  .wk-timer      { font-family: 'Bebas Neue', sans-serif; font-size: clamp(42px, 11vw, 64px); line-height: 0.9; color: #fff; letter-spacing: 3px; }
-  .wk-timer-unit { font-size: 7px; letter-spacing: 2px; color: rgba(255,255,255,0.65); }
-  .wk-off-target {
-    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
-    padding: 3px 12px; border-radius: 20px; background: rgba(0,0,0,0.5);
-    font-size: 9px; letter-spacing: 2px; color: #fff; white-space: nowrap; display: none;
-  }
-  .wk-pulse-ring {
-    position: absolute; inset: 0; border: 3px solid rgba(255,255,255,0.55);
-    border-radius: 10px; animation: wkpulse 1s ease-in-out infinite;
-    pointer-events: none; display: none;
-  }
-  @keyframes wkpulse { 0%,100%{opacity:0.8} 50%{opacity:0.1} }
-  .wk-next {
-    flex-shrink: 0; display: none; align-items: center; gap: 10px;
-    padding: 7px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
-  }
-  .wk-next-swatch { width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0; }
-  .wk-next-lbl  { font-size: 7px; letter-spacing: 2px; color: var(--muted); }
-  .wk-next-zone { font-family: 'Bebas Neue', sans-serif; font-size: 17px; letter-spacing: 2px; }
-  .wk-next-dur  { font-size: 9px; color: var(--muted); }
-  .wk-live-strip { display: flex; gap: 4px; flex: 1; min-height: 0; }
+  .wk-live-strip { display: flex; gap: 4px; flex-shrink: 0; min-height: 0; }
   .wk-live-card {
     flex: 1; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 1px; min-height: 0;
+    align-items: center; justify-content: center; gap: 1px; padding: 10px 4px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
   }
-  .wk-live-lbl  { font-size: 7px; letter-spacing: 2px; color: var(--muted); flex-shrink: 0; }
-  .wk-live-val  { font-family: 'Bebas Neue', sans-serif; font-size: clamp(48px, 16vw, 15vh); letter-spacing: 2px; color: var(--text); line-height: 0.88; }
-  .wk-live-unit { font-size: 8px; color: var(--muted); flex-shrink: 0; }
+  .wk-live-lbl  { font-size: 8px; letter-spacing: 2px; color: var(--muted); flex-shrink: 0; }
+  .wk-live-val  { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px, 12vw, 72px); letter-spacing: 2px; color: var(--text); line-height: 0.9; }
+  .wk-live-unit { font-size: 9px; color: var(--muted); flex-shrink: 0; }
   /* Workout picker in overlay */
   .wk-pick-item {
     display: flex; align-items: center; gap: 10px; padding: 8px 12px;
@@ -821,42 +762,28 @@
 
   <!-- ── WORKOUT PLAYER (replaces metrics when a workout is active) ── -->
   <div id="workoutMode">
-    <div class="wk-timeline" id="wkTimeline"></div>
-    <div class="wk-current" id="wkCurrent">
-      <div class="wk-cur-left">
-        <div class="wk-cur-label">CURRENT BLOCK</div>
-        <div class="wk-zone-name" id="wkZoneName">––</div>
-        <div class="wk-timer-unit">REMAINING</div>
+    <div class="wk-profile-wrap">
+      <div class="wk-caption">
+        <span id="wkCapZone">––</span>
+        <span id="wkCapRemain">0:00</span>
       </div>
-      <div class="wk-timer" id="wkTimer">0:00</div>
-      <div class="wk-off-target" id="wkOffTarget"></div>
-      <div class="wk-pulse-ring" id="wkPulse"></div>
+      <canvas id="wkCanvas"></canvas>
     </div>
-    <div class="wk-right-col">
-      <div class="wk-next" id="wkNext">
-        <div class="wk-next-swatch" id="wkNextSwatch"></div>
-        <div>
-          <div class="wk-next-lbl">NEXT</div>
-          <div class="wk-next-zone" id="wkNextZone"></div>
-          <div class="wk-next-dur" id="wkNextDur"></div>
-        </div>
+    <div class="wk-live-strip">
+      <div class="wk-live-card">
+        <div class="wk-live-lbl">POWER</div>
+        <div class="wk-live-val" id="wkLivePower">––</div>
+        <div class="wk-live-unit">W</div>
       </div>
-      <div class="wk-live-strip">
-        <div class="wk-live-card">
-          <div class="wk-live-lbl">POWER</div>
-          <div class="wk-live-val" id="wkLivePower">––</div>
-          <div class="wk-live-unit">W</div>
-        </div>
-        <div class="wk-live-card">
-          <div class="wk-live-lbl">CADENCE</div>
-          <div class="wk-live-val" id="wkLiveCad">––</div>
-          <div class="wk-live-unit">RPM</div>
-        </div>
-        <div class="wk-live-card">
-          <div class="wk-live-lbl">HEART RATE</div>
-          <div class="wk-live-val" id="wkLiveHR">––</div>
-          <div class="wk-live-unit">BPM</div>
-        </div>
+      <div class="wk-live-card">
+        <div class="wk-live-lbl">CADENCE</div>
+        <div class="wk-live-val" id="wkLiveCad">––</div>
+        <div class="wk-live-unit">RPM</div>
+      </div>
+      <div class="wk-live-card">
+        <div class="wk-live-lbl">HEART RATE</div>
+        <div class="wk-live-val" id="wkLiveHR">––</div>
+        <div class="wk-live-unit">BPM</div>
       </div>
     </div>
   </div>
@@ -936,6 +863,14 @@ function zoneForPower(w) {
     if (pct >= z.pLow && (z.pHigh === 999 || pct <= z.pHigh)) return z;
   }
   return ZONES[ZONES.length - 1];
+}
+
+// Midpoint target watts for a zone (drives workout profile bar height).
+// Z7 open-ended (151-999%); cap high at 175% so its bar stays sane.
+function zoneMidWatts(zoneNum) {
+  const z = ZONES.find(z => z.num === zoneNum);
+  const hi = z.pHigh === 999 ? 175 : z.pHigh;
+  return ((z.pLow + hi) / 2 / 100) * ftp;
 }
 
 // ── ZONE BARS ──────────────────────────────────────────────────────────────
@@ -1567,27 +1502,91 @@ function activateWorkout(workout) {
   document.getElementById('workoutMode').style.display = 'flex';
   document.getElementById('wkStopBtn').style.display   = 'block';
 
-  buildWkTimeline();
+  initWkCanvas();
   applyWkBlock();
+  requestAnimationFrame(renderWkProfile);
   document.getElementById('zoneBars').style.display = 'none';
   wkInterval = setInterval(wkTick, 1000);
 }
 
-function buildWkTimeline() {
-  const total = activeWorkout.blocks.reduce((a,b)=>a+b.secs,0);
-  document.getElementById('wkTimeline').innerHTML = activeWorkout.blocks.map((b,i) => {
-    const z   = ZONES.find(z => z.num === b.zone);
-    const pct = (b.secs / total * 100).toFixed(1);
-    return `<div class="wk-seg" id="wktl${i}" style="background:${z.color};width:${pct}%">
-      <div class="wk-seg-prog" id="wktlp${i}" style="width:0%"></div>
-    </div>`;
-  }).join('');
+let wkCanvas, wkCtx;
+
+// Redraw profile on resize/orientation change while a workout is active
+window.addEventListener('resize', () => {
+  if (wkCanvas && activeWorkout) renderWkProfile();
+});
+
+function initWkCanvas() {
+  wkCanvas = document.getElementById('wkCanvas');
+  wkCtx = wkCanvas.getContext('2d');
+}
+
+function sizeWkCanvas() {
+  const cssW = wkCanvas.clientWidth;
+  const cssH = wkCanvas.clientHeight;
+  const dpr = window.devicePixelRatio || 1;
+  wkCanvas.width  = Math.round(cssW * dpr);
+  wkCanvas.height = Math.round(cssH * dpr);
+  wkCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { W: cssW, H: cssH };
+}
+
+// Seconds elapsed across the whole workout
+function wkTotalElapsed() {
+  let acc = 0;
+  for (let i = 0; i < wkBlockIdx; i++) acc += activeWorkout.blocks[i].secs;
+  const cur = activeWorkout.blocks[wkBlockIdx];
+  if (cur) acc += (cur.secs - wkSecsLeft);
+  return acc;
+}
+
+function renderWkProfile() {
+  if (!wkCanvas || !activeWorkout) return;
+  const { W, H } = sizeWkCanvas();
+  wkCtx.clearRect(0, 0, W, H);
+
+  const total   = activeWorkout.blocks.reduce((a, b) => a + b.secs, 0);
+  const elapsed = wkTotalElapsed();
+  const gap = 1;
+  const maxW = Math.max(...activeWorkout.blocks.map(b => zoneMidWatts(b.zone))) * 1.1;
+
+  // Bars: HEIGHT BY POWER (zone midpoint watts), width by duration
+  let t = 0;
+  activeWorkout.blocks.forEach((b, i) => {
+    const z = ZONES.find(z => z.num === b.zone);
+    const x = (t / total) * W;
+    const w = (b.secs / total) * W;
+    const h = (zoneMidWatts(b.zone) / maxW) * H;
+    wkCtx.globalAlpha = i < wkBlockIdx ? 0.3 : 1;   // dim completed
+    wkCtx.fillStyle = z.color;
+    wkCtx.fillRect(x, H - h, Math.max(w - gap, 1), h);
+    t += b.secs;
+  });
+  wkCtx.globalAlpha = 1;
+
+  // Live cursor
+  const cx = (elapsed / total) * W;
+  wkCtx.strokeStyle = '#fff';
+  wkCtx.lineWidth = 2;
+  wkCtx.beginPath();
+  wkCtx.moveTo(cx, 0);
+  wkCtx.lineTo(cx, H);
+  wkCtx.stroke();
+
+  // Caption: current zone (coloured) + remaining in block
+  const cur = activeWorkout.blocks[wkBlockIdx];
+  if (cur) {
+    const cz = ZONES.find(z => z.num === cur.zone);
+    const cap = document.getElementById('wkCapZone');
+    cap.textContent = `Z${cz.num} - ${cz.name.toUpperCase()}`;
+    cap.style.color = cz.color;
+    document.getElementById('wkCapRemain').textContent = formatTime(Math.max(0, wkSecsLeft));
+  }
 }
 
 function applyWkBlock() {
   const block = activeWorkout.blocks[wkBlockIdx];
   const z     = ZONES.find(z => z.num === block.zone);
-  const next  = activeWorkout.blocks[wkBlockIdx + 1];
 
   // Drive app-wide zone colour from target block
   document.documentElement.style.setProperty('--zone-color', z.color);
@@ -1598,46 +1597,19 @@ function applyWkBlock() {
   flash.style.opacity = '0.15';
   setTimeout(() => flash.style.opacity = '0', 400);
 
-  // Current block card
-  document.getElementById('wkCurrent').style.background = z.color;
-  document.getElementById('wkCurrent').style.border     = `1px solid ${z.color}`;
-  document.getElementById('wkZoneName').textContent = `Z${z.num} - ${z.name.toUpperCase()}`;
-  document.getElementById('wkTimer').textContent    = formatTime(wkSecsLeft);
-
-  // Next block
-  const nxEl = document.getElementById('wkNext');
-  if (next) {
-    const nz = ZONES.find(z => z.num === next.zone);
-    document.getElementById('wkNextSwatch').style.background = nz.color;
-    document.getElementById('wkNextZone').textContent = `Z${nz.num} - ${nz.name}`;
-    document.getElementById('wkNextDur').textContent  = formatTime(next.secs);
-    nxEl.style.display = 'flex';
-  } else {
-    nxEl.style.display = 'none';
-  }
-
-  // Timeline highlight
-  activeWorkout.blocks.forEach((_,i) => {
-    document.getElementById(`wktl${i}`)?.classList.toggle('current', i === wkBlockIdx);
-  });
-
   // Zone bars reflect target
   ZONES.forEach(zz => document.getElementById(`zbar${zz.num}`)?.classList.toggle('active', zz.num === z.num));
+
+  // Chart caption + bars
+  renderWkProfile();
 }
 
 function wkTick() {
   if (!activeWorkout) return;
   wkSecsLeft--;
 
-  document.getElementById('wkTimer').textContent = formatTime(Math.max(0, wkSecsLeft));
-
-  const block = activeWorkout.blocks[wkBlockIdx];
-  if (block) {
-    const elapsed = block.secs - wkSecsLeft;
-    const pct     = Math.min(100, (elapsed / block.secs) * 100).toFixed(1);
-    const tlp = document.getElementById(`wktlp${wkBlockIdx}`);
-    if (tlp) tlp.style.width = pct + '%';
-  }
+  // Redraw chart (advances cursor, updates caption zone + remaining)
+  renderWkProfile();
 
   wkUpdateLive();
 
@@ -1658,7 +1630,6 @@ function wkTick() {
     log(`wkSecsLeft hit 0 — transitioning from block ${wkBlockIdx}, total blocks: ${activeWorkout.blocks.length}`);
     clearInterval(wkInterval);
     wkInterval = null;
-    document.getElementById(`wktl${wkBlockIdx}`)?.classList.add('done');
     wkBlockIdx++;
     log(`Block transition: idx now ${wkBlockIdx} of ${activeWorkout.blocks.length}`);
     if (wkBlockIdx >= activeWorkout.blocks.length) { wkFinish(); return; }
@@ -1668,8 +1639,7 @@ function wkTick() {
       applyWkBlock();
     } catch(e) {
       log(`applyWkBlock error: ${e.message} — continuing anyway`);
-      // Even if display update fails, keep the timer running
-      document.getElementById('wkTimer').textContent = formatTime(wkSecsLeft);
+      renderWkProfile();
     }
     wkInterval = setInterval(wkTick, 1000);
     log(`Interval restarted for block ${wkBlockIdx}`);
@@ -1685,17 +1655,6 @@ function wkUpdateLive() {
   document.getElementById('wkLivePower').style.color = az ? az.color : 'var(--text)';
   document.getElementById('wkLiveCad').textContent   = liveCad > 0  ? liveCad   : '––';
   document.getElementById('wkLiveHR').textContent    = liveHR > 0   ? liveHR    : '––';
-  const targetZ = currentBlock.zone;
-  const otEl    = document.getElementById('wkOffTarget');
-  const pulse   = document.getElementById('wkPulse');
-  if (az && az.num !== targetZ) {
-    otEl.style.display  = 'block';
-    otEl.textContent    = `RIDING Z${az.num} - ${az.name.toUpperCase()}`;
-    pulse.style.display = 'block';
-  } else {
-    otEl.style.display  = 'none';
-    pulse.style.display = 'none';
-  }
 }
 
 function wkFinish() {
@@ -1705,13 +1664,10 @@ function wkFinish() {
   setTimeout(beep, 300);
   spotifyPause();
 
-  document.getElementById('wkCurrent').style.background = '#2ed573';
-  document.getElementById('wkCurrent').style.border     = '1px solid #2ed573';
-  document.getElementById('wkZoneName').textContent     = 'WORKOUT COMPLETE';
-  document.getElementById('wkTimer').textContent        = '✓';
-  document.getElementById('wkOffTarget').style.display  = 'none';
-  document.getElementById('wkPulse').style.display      = 'none';
-  document.getElementById('wkNext').style.display       = 'none';
+  const cap = document.getElementById('wkCapZone');
+  cap.textContent = 'WORKOUT COMPLETE';
+  cap.style.color = '#2ed573';
+  document.getElementById('wkCapRemain').textContent = '✓';
   document.documentElement.style.setProperty('--zone-color', '#2ed573');
   document.getElementById('logoZone').textContent = 'WORKOUT COMPLETE';
 
