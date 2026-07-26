@@ -1467,6 +1467,22 @@ function formatTime(seconds) {
 }
 
 // ── SESSION START ──────────────────────────────────────────────────────────
+// ── AUDIO ──────────────────────────────────────────────────────────────────
+function beep(freq = 880, duration = 0.3) {
+  try {
+    const ctx  = new AudioContext();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch(e) {}
+}
+
 // ── WORKOUT INTEGRATION ────────────────────────────────────────────────────
 const WK_STORE = 'stages_workouts_v1';
 let selectedWorkoutId = null;
